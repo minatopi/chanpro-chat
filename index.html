@@ -1,3 +1,37 @@
+<!-- 
+今週の追加機能
+・プロフィール追加
+　アカウント設定からプロフィール設定
+　今までの通報ページにプロフィール追加
+　
+プログラムの改造はしないでください。
+同じブラウザを開いている人と、連絡ができます。
+個人情報は入力しないでください
+パスワードはハッシュ化されいるのでご安心下さい。
+不安定な場合は再ログインしてください。
+むやみにアカウントを作らないでください。
+アイコンはURLだけにしてください。
+
+追加機能：
+・アカウント式になりました。(つまり開発者がアカウントを管理できるようになった。)
+・３回以上通報されたら、BANされます。
+・参加者一覧できました。
+・参加者一覧から通報できます。
+・テーマカラー変更できるようになりました。
+・写真追加できるようになりました。
+・同じ名前のユーザー作れません。
+・アイコン、自己紹介(プロフィール)が設定できるようになりました。
+
+
+追加予定：
+・返信機能
+・AI(gpt-4o-mini)を使ったBANの警告
+・supabaseを使ったroomの履歴保存
+・現在始動中のチャットルーム
+・セキュリティーアップ
+・どれほどチャットしているか、BAN回数、AIによる分析に
+　よってポイントを作る。そのポイントで称号をもらう。
+-->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -326,6 +360,20 @@ button:disabled {
 }
 body.dark input::placeholder{
     color:#aaa;
+}
+.date-divider{
+    text-align:center;
+    margin:15px 0;
+}
+
+.date-divider span{
+    display:inline-block;
+    background:#d9d9d9;
+    color:#555;
+    padding:4px 12px;
+    border-radius:12px;
+    font-size:12px;
+    font-weight:bold;
 }
 </style>
 </head>
@@ -692,6 +740,8 @@ disabled>
 
 
 <script>
+let lastMessageDate = "";
+let historyLoaded = false;
 let myProfile={
  icon_url:"",
  profile:""
@@ -923,7 +973,7 @@ let bannedUsers = {};
 let isBanned=false;
 
 
-
+let syncFinished=false;
 let client = null;
 let clientId = null;
 let userName = "";
@@ -1180,7 +1230,7 @@ async function startChat(){
 
 
 
-    client.on("connect",()=>{
+    client.on("connect",async ()=>{
 
 
         console.log("MQTT connected");
@@ -1236,7 +1286,7 @@ async function startChat(){
             2秒固定
         */
 
-        setTimeout(()=>{
+        setTimeout(async ()=>{
 
 
             nameCheckFinished=true;
@@ -1263,30 +1313,20 @@ async function startChat(){
             }
 
 
-
-
+            
+            
             knownMembers[clientId]=true;
-
-
-
+            
             addMsg(
-
                 "システム",
-
                 `${userName}さんが参加しました`,
-
                 false,
-
                 Date.now()
-
             );
-
-
-
-            requestSync();
-
-
-
+            
+            // 履歴確認してから処理
+            await loadOrSyncHistory();
+            
             announce();
 
 
@@ -1307,7 +1347,6 @@ async function startChat(){
 
 
         },1000);
-
 
 
     });
@@ -1749,6 +1788,7 @@ async function sendMsg(){
         );
 
     }
+    saveChatHistory(userName, clientId, t);
 
 
     addMsg(
@@ -1794,60 +1834,28 @@ function requestSync(){
 
 function syncMessage(data){
 
+ if(data.type==="request"){
+   Object.values(history).forEach(msg=>{
+     client.publish(
+       `chat/${userRoom}/sync`,
+       JSON.stringify({
+          type:"send",
+          target:data.id,
+          data:msg
+       }),
+       {qos:1}
+     );
+   });
+ }
 
 
-    if(data.type==="request"){
+ if(data.type==="send"){
+   if(data.target!==clientId)return;
 
+   receiveMessage(data.data);
 
-        Object.values(history)
-
-        .forEach(msg=>{
-
-
-            client.publish(
-
-                `chat/${userRoom}/sync`,
-
-                JSON.stringify({
-
-                    type:"send",
-
-                    target:data.id,
-
-                    data:msg
-
-                }),
-
-                {
-                    qos:1
-                }
-
-            );
-
-
-        });
-
-
-    }
-
-
-
-
-    if(data.type==="send"){
-
-
-
-        if(data.target!==clientId)
-            return;
-
-
-
-        receiveMessage(data.data);
-
-
-    }
-
-
+   syncFinished=true;
+ }
 }
 // presence
 
@@ -2013,155 +2021,122 @@ function createMessageContent(text){
     return fragment;
 
 }
+async function getUserIcon(name){
+    // 自分
+    if(name===userName && myProfile.icon_url){
+        return myProfile.icon_url;
+    }
 
+    // 参加中メンバー
+    for(const member of Object.values(members)){
+        if(member.name===name && member.icon_url){
+            return member.icon_url;
+        }
+    }
+
+    // Supabaseから検索
+    const {data,error}=await supabaseClient
+        .from("users")
+        .select("icon_url")
+        .eq("username",name)
+        .maybeSingle();
+
+    if(!error && data && data.icon_url){
+        return data.icon_url;
+    }
+
+    return "https://placehold.jp/40x40.png";
+}
 
 // 表示
 
-function addMsg(name,msg,isMe=false,time=Date.now()){
+async function addMsg(name, msg, isMe = false, time = Date.now()) {
 
+    const chat = document.getElementById("chat");
 
-    const div =
-    document.createElement("div");
+    const div = document.createElement("div");
 
+    const t = new Date(time);
 
-    const t =
-    new Date(time);
-
+    const dateStr =
+        `${t.getFullYear()}/` +
+        `${String(t.getMonth() + 1).padStart(2, "0")}/` +
+        `${String(t.getDate()).padStart(2, "0")}`;
 
     const tm =
-    `${String(t.getHours()).padStart(2,"0")}:`+
-    `${String(t.getMinutes()).padStart(2,"0")}`;
+        `${String(t.getHours()).padStart(2, "0")}:` +
+        `${String(t.getMinutes()).padStart(2, "0")}`;
 
+    // 日付が変わったら日付区切りを表示
+    if (lastMessageDate !== dateStr) {
 
+        lastMessageDate = dateStr;
 
-    if(name==="システム"){
+        const dateDiv = document.createElement("div");
+        dateDiv.className = "date-divider";
 
+        const span = document.createElement("span");
+        span.textContent = dateStr;
 
-        div.className="system";
+        dateDiv.appendChild(span);
 
-
-        div.textContent =
-        `${msg} ${tm}`;
-
-
-    }else{
-
-
-        const wrap =
-        document.createElement("div");
-
-
-        wrap.className =
-        "message-wrap "
-        +
-        (isMe ? "me":"");
-
-
-
-        const box =
-        document.createElement("div");
-
-
-        box.className =
-        "msg "
-        +
-        (isMe ? "me":"");
-        const theme = themes[currentTheme];
-        
-        
-        if(isMe){
-        
-            box.style.background = theme.me;
-        
-        }else{
-        
-            box.style.background = theme.other;
-        
-        }
-        
-        
-        box.style.color = theme.text;
-        
-        
-        // アイコン表示
-        const icon=document.createElement("img");
-        
-        let iconUrl="https://placehold.jp/40x40.png";
-        
-        // 自分の場合
-        if(name===userName && myProfile.icon_url){
-            iconUrl=myProfile.icon_url;
-        }
-        
-        // 他ユーザーの場合
-        Object.values(members).forEach(member=>{
-            if(member.name===name && member.icon_url){
-                iconUrl=member.icon_url;
-            }
-        });
-        
-        
-        icon.src=iconUrl;
-        icon.style.width="30px";
-        icon.style.height="30px";
-        icon.style.borderRadius="50%";
-        icon.style.objectFit="cover";
-        icon.style.verticalAlign="middle";
-        icon.style.marginRight="5px";
-        
-        icon.onerror=function(){
-            icon.src="https://placehold.jp/40x40.png";
-        };
-        
-        
-        // 名前＋アイコン
-        box.appendChild(icon);
-        
-        box.appendChild(
-            document.createTextNode(name+"：")
-        );
-        
-        
-        box.appendChild(
-            createMessageContent(msg)
-        );
-
-
-
-        const timeDiv =
-        document.createElement("div");
-
-
-        timeDiv.className =
-        "time "
-        +
-        (isMe ? "me":"other");
-
-
-
-        timeDiv.textContent=tm;
-
-
-
-        wrap.appendChild(box);
-
-        wrap.appendChild(timeDiv);
-
-
-        div.appendChild(wrap);
-
-
+        chat.appendChild(dateDiv);
     }
 
+    if (name === "システム") {
 
+        div.className = "system";
+        div.textContent = `${msg} ${tm}`;
+
+    } else {
+
+        const wrap = document.createElement("div");
+        wrap.className = "message-wrap " + (isMe ? "me" : "");
+
+        const box = document.createElement("div");
+        box.className = "msg " + (isMe ? "me" : "");
+
+        const theme = themes[currentTheme];
+
+        if (theme) {
+            box.style.background = isMe ? theme.me : theme.other;
+            box.style.color = theme.text;
+        }
+
+        // アイコン
+        const icon = document.createElement("img");
+
+        const iconUrl = await getUserIcon(name);
+
+        icon.src = iconUrl || "https://placehold.jp/40x40.png";
+        icon.style.width = "30px";
+        icon.style.height = "30px";
+        icon.style.borderRadius = "50%";
+        icon.style.objectFit = "cover";
+        icon.style.verticalAlign = "middle";
+        icon.style.marginRight = "5px";
+
+        icon.onerror = function () {
+            this.src = "https://placehold.jp/40x40.png";
+        };
+
+        box.appendChild(icon);
+        box.appendChild(document.createTextNode(name + "："));
+        box.appendChild(createMessageContent(msg));
+
+        const timeDiv = document.createElement("div");
+        timeDiv.className = "time " + (isMe ? "me" : "other");
+        timeDiv.textContent = tm;
+
+        wrap.appendChild(box);
+        wrap.appendChild(timeDiv);
+
+        div.appendChild(wrap);
+    }
 
     chat.appendChild(div);
 
-
-    chat.scrollTop =
-    chat.scrollHeight;
-
-
+    chat.scrollTop = chat.scrollHeight;
 }
 
 
@@ -3392,6 +3367,169 @@ function isValidURL(url){
 
  }
 
+}
+async function saveChatHistory(name, id, msg){
+
+    // roomだけ保存
+    if(userRoom !== "room") return;
+
+    // Base64画像を削除
+    const text = msg
+        .replace(/data:image\/[^\s]+/g, "")
+        .trim();
+
+    // テキストが無ければ保存しない
+    if(!text) return;
+
+    const { error } = await supabaseClient
+        .from("room_chat_history")
+        .insert({
+            username: name,
+            user_id: id,
+            message: text
+        });
+
+    if(error){
+        console.log("履歴保存失敗", error);
+    }
+}
+/* async function loadChatHistory(){
+
+    if(userRoom !== "room") return;
+
+    if(historyLoaded) return;
+
+    historyLoaded=true;
+
+
+    const {data,error}=await supabaseClient
+    .from("room_chat_history")
+    .select("*")
+    .order("created_at",{ascending:true})
+    .limit(100);
+
+
+    if(error){
+        console.log(error);
+        return;
+    }
+
+
+    data.forEach(row=>{
+
+        const id="history-"+row.id;
+
+        if(history[id]) return;
+
+        history[id]=true;
+
+
+        addMsg(
+            row.username,
+            row.message,
+            row.user_id===clientId,
+            new Date(row.created_at).getTime()
+        );
+
+    });
+
+} */
+async function loadOrSyncHistory(){
+　lastMessageDate = "";
+　document.getElementById("chat").innerHTML = "";
+ requestSync();
+
+ await new Promise(resolve=>{
+
+   let count=0;
+
+   const timer=setInterval(()=>{
+
+     count++;
+
+     if(syncFinished || count>=30){
+       clearInterval(timer);
+       resolve();
+     }
+
+   },100);
+
+ });
+
+ if(Object.keys(history).length>0){
+   console.log("MQTT履歴あり");
+   return;
+ }
+
+
+ console.log("MQTT履歴なし Supabase確認");
+
+ // Supabase処理
+
+
+    const {data,error}=await supabaseClient
+     .from("room_chat_history")
+     .select("*")
+     .order("created_at",{ascending:true})
+     .order("id",{ascending:true})
+     .limit(100);
+
+
+    if(error){
+        console.log("履歴取得エラー",error);
+
+        // Supabase失敗ならMQTT同期
+        requestSync();
+        return;
+    }
+
+
+    if(data && data.length > 0){
+
+        console.log(
+            "Supabase履歴読み込み:",
+            data.length
+        );
+
+
+        for(const row of data){
+        
+          const id="history-"+row.id;
+        
+          const msg={
+            msgId:id,
+            id:row.user_id,
+            name:row.username,
+            msg:row.message,
+            time:new Date(row.created_at).getTime()
+          };
+        
+          history[id]=msg;
+        
+          await addMsg(
+            msg.name,
+            msg.msg,
+            msg.id===clientId,
+            msg.time
+          );
+        
+        }
+
+
+    }else{
+
+        console.log(
+            "Supabase履歴なし MQTT同期"
+        );
+
+        requestSync();
+
+    }
+    // Supabaseから復元した履歴をMQTT共有用に保持
+    console.log(
+        "MQTT同期用履歴:",
+        Object.keys(history).length
+    );
 }
 </script>
 
