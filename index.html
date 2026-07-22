@@ -706,8 +706,9 @@ disabled>
 
 
 <script>
+let historyLoading=true;
+let pendingJoinMessages=[];
 let lastMessageDate = "";
-let historyLoaded = false;
 let myProfile={
  icon_url:"",
  profile:""
@@ -922,7 +923,7 @@ function changeTheme(type){
 
 });
 }
-
+let historyLoaded=false;
 let nameConflict = false;
 let myNameCheck = false;
 
@@ -1253,65 +1254,60 @@ async function startChat(){
         */
 
         setTimeout(async ()=>{
-
-
-            nameCheckFinished=true;
-
-
-
+        
+            nameCheckFinished = true;
+        
+        
             if(nameConflict){
-
-
-                alert(
-                    "同じユーザー名がすでに使用されています"
-                );
-
-
+        
+                alert("同じユーザー名がすでに使用されています");
+        
                 client.end(true);
-
-
+        
                 location.reload();
-
-
+        
                 return;
-
-
+        
             }
-
-
+        
+        
+            // 履歴取得
+            await loadOrSyncHistory();
+            
+            await new Promise(resolve=>setTimeout(resolve,500));           
+            pendingJoinMessages=[];
             
             
             knownMembers[clientId]=true;
             
+            
+            // 自分の参加通知
             addMsg(
                 "システム",
                 `${userName}さんが参加しました`,
                 false,
                 Date.now()
             );
-            
-            // 履歴確認してから処理
-            await loadOrSyncHistory();
-            
+        
+        
             announce();
-
-
-
-            document.getElementById("sendButton")
-            .disabled=false;
-
-
-
+        
+        
+            const sendButton=document.getElementById("sendButton");
+        
+            if(sendButton){
+        
+                sendButton.disabled=false;
+        
+            }
+        
+        
             startBanWatcher();
-
-
-
-            document.getElementById("users")
-            .innerText =
-            "読み込み中…";
-
-
-
+        
+        
+            document.getElementById("users").innerText="読み込み完了";
+        
+        
         },1000);
 
 
@@ -1445,45 +1441,46 @@ function receiveMQTT(topic,message){
     
     }
     if(topic.endsWith("/presence")){
-
-
-        if(data.id!==clientId
-        &&
-        !knownMembers[data.id]){
-
-
+    
+    
+        if(data.id!==clientId && !knownMembers[data.id]){
+    
+    
             knownMembers[data.id]=true;
-
-
-            addMsg(
-
-                "システム",
-
-                `${data.name}さんが参加しました`,
-
-                false,
-
-                Date.now()
-
-            );
-
+    
+    
+            if(historyLoading){
+    
+                // 履歴読み込み中なら保存
+                pendingJoinMessages.push(data);
+    
+    
+            }else{
+    
+    
+                addMsg(
+                    "システム",
+                    `${data.name}さんが参加しました`,
+                    false,
+                    Date.now()
+                );
+    
+    
+            }
+    
         }
-
-
-
+    
+    
         members[data.id]={
             name:data.name,
             icon_url:data.icon_url || "",
             profile:data.profile || "",
             time:Date.now()
-
         };
-
-
-
+    
+    
         showMembers();
-
-
+    
     }
 
 
@@ -1776,24 +1773,24 @@ async function sendMsg(){
 
 function requestSync(){
 
+    syncFinished=false;
+
 
     client.publish(
-
         `chat/${userRoom}/sync`,
-
         JSON.stringify({
-
             type:"request",
-
             id:clientId
-
         }),
-
-        {
-            qos:1
-        }
-
+        {qos:1}
     );
+
+
+    syncTimer=setTimeout(()=>{
+
+        syncFinished=true;
+
+    },3000);
 
 }
 // 同期処理
@@ -1815,13 +1812,18 @@ function syncMessage(data){
  }
 
 
- if(data.type==="send"){
-   if(data.target!==clientId)return;
+if(data.type==="send"){
 
-   receiveMessage(data.data);
+    if(data.target!==clientId)return;
 
-   syncFinished=true;
- }
+
+    receiveMessage(data.data);
+
+
+    // すべての同期が届くまで待つ
+    clearTimeout(syncTimer);
+
+}
 }
 // presence
 
@@ -1867,8 +1869,7 @@ function showMembers(){
             icon_url:myProfile.icon_url,
             profile:myProfile.profile
         });
-    };
-    list.appendChild(me);    
+    }; 
     list.appendChild(me);
 
     // 他の参加者
@@ -3401,9 +3402,7 @@ async function saveChatHistory(name, id, msg){
 
 } */
 async function loadOrSyncHistory(){
-　lastMessageDate = "";
-　document.getElementById("chat").innerHTML = "";
- requestSync();
+  requestSync();
 
  await new Promise(resolve=>{
 
@@ -3496,6 +3495,18 @@ async function loadOrSyncHistory(){
         "MQTT同期用履歴:",
         Object.keys(history).length
     );
+    historyLoaded=true;
+    historyLoading=false;
+    pendingJoinMessages.forEach(data=>{
+        addMsg(
+            "システム",
+            `${data.name}さんが参加しました`,
+            false,
+            Date.now()
+        );
+    });
+
+    pendingJoinMessages=[];    
 }
 </script>
 
