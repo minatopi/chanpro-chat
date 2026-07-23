@@ -3402,6 +3402,10 @@ async function saveChatHistory(name, id, msg){
 
 } */
 async function loadOrSyncHistory(){
+    if(userRoom !== "room"){
+        console.log("履歴読み込み対象外:", userRoom);
+        return;
+    }    
   requestSync();
 
  await new Promise(resolve=>{
