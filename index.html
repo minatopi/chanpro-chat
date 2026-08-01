@@ -1,545 +1,644 @@
+<!-- 
+同じブラウザを開いている人と、連絡ができます。
+また、履歴も残ります。
+
+プログラムの改造はしないでください。
+個人情報は入力しないでください
+パスワードはハッシュ化されいるのでご安心下さい。
+不安定な場合は再ログインしてください。
+むやみにアカウントを作らないでください。
+アイコンはURLだけにしてください。
+
+ポイントは他の人と協力することで点を伸ばせます。
+基本のポイントは普通に使っていたらたまっていきます。
+roomの履歴は、私の設定次第、消えません。
+ただし、room以外の履歴保存は、保証しません。
+room以外の履歴は私の管理外です。履歴は消えないように
+設定はしていますが、消える可能性もあります。
+roomは履歴1000件保存可能で、画像は保存されません。
+それ以外のチャットは、500件まで保存でき、画像も保存でき
+ます。
+
+今週の追加機能
+・プロフィール追加
+　アカウント設定からプロフィール設定
+　今までの通報ページにプロフィール追加
+・履歴保存
+・ポイント追加←ポイント、今後改造予定
+
+今できているポイント機能
+・ポイントを指定した人にあげると、相手に自分の分が送ら
+　れ、システムからその1/6がもらえる。
+・ポイント稼ぎと検知したら、その文字数×2ポイント失う。
+
+追加機能：
+・アカウント式になりました。(つまり開発者がアカウントを管理できるようになった。)
+・３回以上通報されたら、BANされます。
+・参加者一覧できました。
+・参加者一覧から通報できます。
+・テーマカラー変更できるようになりました。
+・写真追加できるようになりました。
+・同じ名前のユーザー作れません。
+・アイコン、自己紹介(プロフィール)が設定できるようになりました。
+
+
+追加予定：
+・返信機能
+・AI(gpt-4o-mini)を使ったBANの警告
+・supabaseを使ったroomの履歴保存
+・現在始動中のチャットルーム
+・セキュリティーアップ
+・どれほどチャットしているか、BAN回数、AIによる分析に
+　よってポイントを作る。そのポイントで称号をもらう。
+-->
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8">
-<title>chanpro-Chat</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <meta charset="UTF-8">
+    <title>chanpro-Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
-<style>
-body {
-    font-family: sans-serif;
-    background: #eef0f3;
-    display: flex;
-    justify-content: center;
-}
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #eef0f3;
+            display: flex;
+            justify-content: center;
+        }
 
 
-#app {
-    width: 420px;
-    margin-top: 20px;
-}
+        #app {
+            width: 420px;
+            margin-top: 20px;
+        }
 
 
 
-/* チャット表示 */
+        /* チャット表示 */
 
-#chat {
+        #chat {
 
-    height: 420px;
+            height: 420px;
 
-    overflow-y: auto;
+            overflow-y: auto;
 
-    background: white;
+            background: white;
 
-    padding: 10px;
+            padding: 10px;
 
-    border-radius: 10px;
+            border-radius: 10px;
 
-    border: 1px solid #ddd;
-    position:relative;
-}
+            border: 1px solid #ddd;
+            position: relative;
+        }
 
 
 
 
 
-/* システムメッセージ */
+        /* システムメッセージ */
 
-.system {
+        .system {
 
-    background: transparent;
+            background: transparent;
 
-    color: #777;
+            color: #777;
 
-    text-align: center;
+            text-align: center;
 
-    font-weight: normal;
+            font-weight: normal;
 
-    padding: 4px;
+            padding: 4px;
 
-    margin: 8px 0;
+            margin: 8px 0;
 
-}
+        }
 
 
 
 
 
-/* メッセージ全体 */
+        /* メッセージ全体 */
 
-.message-wrap {
+        .message-wrap {
 
-    display: flex;
+            display: flex;
 
-    flex-direction: column;
+            flex-direction: column;
 
-    width: fit-content;
+            width: fit-content;
 
-    max-width: 75%;
+            max-width: 75%;
 
-    margin: 6px 0;
+            margin: 6px 0;
 
-}
+        }
 
 
 
 
 
-/* 自分のメッセージ */
+        /* 自分のメッセージ */
 
-.message-wrap.me {
+        .message-wrap.me {
 
-    margin-left: auto;
+            margin-left: auto;
 
-    align-items: flex-end;
+            align-items: flex-end;
 
-}
+        }
 
 
 
 
 
-/* 吹き出し */
+        /* 吹き出し */
 
-.msg {
+        .msg {
 
-    padding: 8px;
+            padding: 8px;
 
-    border-radius: 10px;
+            border-radius: 10px;
 
-    background: #e8f1ff;
+            background: #e8f1ff;
 
-    word-break: break-word;
+            word-break: break-word;
 
-    width: fit-content;
+            width: fit-content;
 
-    max-width: 100%;
+            max-width: 100%;
 
-}
+        }
 
 
 
 
 
-/* 自分側吹き出し */
+        /* 自分側吹き出し */
 
-.msg.me {
+        .msg.me {
 
-    background: #d9ffd9;
+            background: #d9ffd9;
 
-}
+        }
 
 
 
 
 
-/* 時間 */
+        /* 時間 */
 
-.time {
+        .time {
 
-    font-size: 11px;
+            font-size: 11px;
 
-    color: #999;
+            color: #999;
 
-    margin-top: 2px;
+            margin-top: 2px;
 
-    padding: 0 4px;
+            padding: 0 4px;
 
-}
+        }
 
 
 
 
 
-/* 自分の時間 */
+        /* 自分の時間 */
 
-.time.me {
+        .time.me {
 
-    text-align: right;
+            text-align: right;
 
-}
+        }
 
 
 
 
 
-/* 相手の時間 */
+        /* 相手の時間 */
 
-.time.other {
+        .time.other {
 
-    text-align: left;
+            text-align: left;
 
-}
+        }
 
 
 
 
 
-/* 上部 */
+        /* 上部 */
 
-#top{
-    display:flex;
-    align-items:center;
-    gap:6px;
-    position:relative;
-}
+        #top {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+        }
 
 
 
 
 
-/* 入力欄 */
+        /* 入力欄 */
 
-input {
+        input {
 
-    flex: 1;
+            flex: 1;
 
-    padding: 8px;
+            padding: 8px;
 
-    border-radius: 8px;
+            border-radius: 8px;
 
-    border: 1px solid #ccc;
+            border: 1px solid #ccc;
 
-}
+        }
 
 
 
 
 
-/* ボタン */
+        /* ボタン */
 
-button {
+        button {
 
-    padding: 8px;
+            padding: 8px;
 
-    border: none;
+            border: none;
 
-    border-radius: 8px;
+            border-radius: 8px;
 
-    background: #4a7dff;
+            background: #4a7dff;
 
-    color: white;
+            color: white;
 
-    cursor: pointer;
+            cursor: pointer;
 
-}
+        }
 
 
 
-button:disabled {
+        button:disabled {
 
-    background: #aaa;
+            background: #aaa;
 
-    cursor: not-allowed;
+            cursor: not-allowed;
 
-}
+        }
 
-#main{
-    display:flex;
-    gap:15px;
-}
+        #main {
+            display: flex;
+            gap: 15px;
+        }
 
-#left{
-    width:420px;
-    position:relative;
-}
+        #left {
+            width: 420px;
+            position: relative;
+        }
 
-#memberPanel{
-    width:180px;
-    background:white;
-    border:1px solid #ddd;
-    border-radius:10px;
-    padding:10px;
-    height:520px;
-    box-sizing:border-box;
-}
+        #memberPanel {
+            width: 180px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            height: 520px;
+            box-sizing: border-box;
+        }
 
-#memberPanel h3{
-    margin-top:0;
-    font-size:16px;
-    border-bottom:1px solid #ddd;
-    padding-bottom:6px;
-}
+        #memberPanel h3 {
+            margin-top: 0;
+            font-size: 16px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 6px;
+        }
 
-#memberList{
-    list-style:none;
-    padding:0;
-    margin:0;
-}
+        #memberList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
 
-#memberList li{
-    padding:6px 0;
-    border-bottom:1px solid #eee;
-}
-#themeMenu{
-    display:none;
-    position:absolute;
-    top:35px;
-    left:0;
-    background:white;
-    padding:8px;
-    border-radius:10px;
-    border:1px solid #ddd;
-    gap:6px;
-    z-index:100;
-}
+        #memberList li {
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+        }
 
+        #themeMenu {
+            display: none;
+            position: absolute;
+            top: 35px;
+            left: 0;
+            background: white;
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            gap: 6px;
+            z-index: 100;
+        }
 
-.theme{
-    width:45px;
-    height:35px;
-    border-radius:8px;
-    border:none;
-    color:white;
-    cursor:pointer;
-}
 
+        .theme {
+            width: 45px;
+            height: 35px;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
 
-.theme.blue{
-    background:#4a7dff;
-}
 
+        .theme.blue {
+            background: #4a7dff;
+        }
 
-.theme.green{
-    background:#39a852;
-}
 
+        .theme.green {
+            background: #39a852;
+        }
 
-.theme.red{
-    background:#ff6666;
-}
 
+        .theme.red {
+            background: #ff6666;
+        }
 
-.theme.dark{
-    background:#333;
-}
-#loginMessage{
 
-    color:#ff3333;
+        .theme.dark {
+            background: #333;
+        }
 
-    font-size:14px;
+        #loginMessage {
 
-    margin-top:8px;
+            color: #ff3333;
 
-    min-height:20px;
+            font-size: 14px;
 
-}
-body.dark input::placeholder{
-    color:#aaa;
-}
-.date-divider{
-    text-align:center;
-    margin:15px 0;
-}
+            margin-top: 8px;
 
-.date-divider span{
-    display:inline-block;
-    background:#d9d9d9;
-    color:#555;
-    padding:4px 12px;
-    border-radius:12px;
-    font-size:12px;
-    font-weight:bold;
-}
-#profile{
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    max-width:200px;
-}
-#pointBox{
-    width:120px;
-    margin-left:auto;
-    display:flex;
-    flex-direction:column;
-    align-items:flex-end;
-    transform:translateY(-40px);
-}
+            min-height: 20px;
 
-#pointText{
-    font-size:12px;
-    color:#555;
-    margin-bottom:3px;
-}
+        }
 
-#pointBarBg{
-    width:120px;
-    height:10px;
-    background:#ddd;
-    border-radius:20px;
-    overflow:hidden;
-}
+        body.dark input::placeholder {
+            color: #aaa;
+        }
 
-#pointBar{
-    width:0%;
-    height:100%;
-    background:linear-gradient(90deg,#4a7dff,#74c4ff);
-    border-radius:20px;
-    transition:width .5s ease;
-}
-#chat{
-    position:relative;
-}
-:root{
-    --theme-color:#5dade2;
-    --account-color:#e74c3c;
-    --profile-color:#3498db;
+        .date-divider {
+            text-align: center;
+            margin: 15px 0;
+        }
 
-    --notify-color:#4a7dff;
-}
+        .date-divider span {
+            display: inline-block;
+            background: #d9d9d9;
+            color: #555;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
 
-body.dark{
-    --profile-color:#8ab4f8;
-    --account-color:#8b0000;
+        #profile {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
 
-    --notify-color:#8b0000;
-}
+        #pointBox {
+            width: 150px;
+            margin-left: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            transform: translateY(-40px);
+        }
 
+        #pointText {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 3px;
+        }
+        #Rank {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 3px;
+        }
+        #pointBarBg {
+            width: 150px;
+            height: 10px;
+            background: #d8d8d8;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #ccc;
+        }
 
-#chatNotify{
-    position:fixed;
-    top:20px;
-    left:50%;
-    transform:translateX(-50%);
-    z-index:100;
-    width:600px;
-    max-width:90vw;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-    pointer-events:none;
-}
+        #pointBar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #4a7dff, #74c4ff);
+            border-radius: 20px;
+            transition: width .5s ease;
+        }
 
+        #chat {
+            position: relative;
+        }
 
-.chat-notify{
-    background:color-mix(
-        in srgb,
-        var(--notify-color) 80%,
-        transparent
-    );
+        :root {
+            --theme-color: #5dade2;
+            --account-color: #e74c3c;
+            --profile-color: #3498db;
 
-    color:white;
+            --notify-color: #4a7dff;
+        }
 
-    padding:14px 25px;
-    border-radius:14px;
+        body.dark {
+            --profile-color: #8ab4f8;
+            --account-color: #8b0000;
 
-    box-shadow:
-        0 4px 15px rgba(0,0,0,.35);
+            --notify-color: #8b0000;
+        }
 
-    text-align:center;
-    font-size:14px;
 
-    backdrop-filter:blur(5px);
+        #chatNotify {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            width: 600px;
+            max-width: 90vw;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
 
-    animation:
-        slideDown .35s ease,
-        fadeOut .35s ease 2.8s forwards;
-}
 
+        .chat-notify {
+            background: color-mix(in srgb,
+                    var(--notify-color) 80%,
+                    transparent);
 
-.chat-notify.success{
-    background:rgba(40,160,70,.92);
-}
+            color: white;
 
+            padding: 14px 25px;
+            border-radius: 14px;
 
-.chat-notify.error{
-    background:rgba(220,50,50,.92);
-}
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, .35);
 
+            text-align: center;
+            font-size: 14px;
 
-@keyframes slideDown{
+            backdrop-filter: blur(5px);
 
-    from{
-        opacity:0;
-        transform:translateY(-50px);
-    }
+            animation:
+                slideDown .35s ease,
+                fadeOut .35s ease 2.8s forwards;
+        }
 
-    to{
-        opacity:1;
-        transform:translateY(0);
-    }
 
-}
+        .chat-notify.success {
+            background: rgba(40, 160, 70, .92);
+        }
 
 
-@keyframes fadeOut{
+        .chat-notify.error {
+            background: rgba(220, 50, 50, .92);
+        }
 
-    from{
-        opacity:1;
-    }
 
-    to{
-        opacity:0;
-        transform:translateY(-30px);
-    }
+        @keyframes slideDown {
 
-}
-.profile-button{
-    background:var(--profile-color);
-}
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
 
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
 
-.account-button{
-    background:var(--account-color);
-}
-.profile-level{
-    margin-top:10px;
-    font-weight:bold;
-    font-size:16px;
-}
+        }
 
 
-.profile-bar-bg{
+        @keyframes fadeOut {
 
-    width:200px;
+            from {
+                opacity: 1;
+            }
 
-    height:12px;
+            to {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
 
-    background:#ddd;
+        }
 
-    border-radius:10px;
+        .profile-button {
+            background: var(--profile-color);
+        }
 
-    overflow:hidden;
 
-    margin-top:8px;
-    margin:8px auto 0;
-}
+        .account-button {
+            background: var(--account-color);
+        }
 
+        .profile-level {
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 16px;
+        }
 
-.profile-bar{
 
-    height:100%;
+        .profile-bar-bg {
 
-    background:linear-gradient(
-        90deg,
-        #4a7dff,
-        #74c4ff
-    );
+            width: 200px;
 
-    border-radius:10px;
+            height: 12px;
 
-    transition:.3s;
+            background: #ddd;
 
-}
+            border-radius: 10px;
 
+            overflow: hidden;
 
-.profile-point-text{
+            margin-top: 8px;
+            margin: 8px auto 0;
+        }
 
-    font-size:12px;
 
-    margin-top:4px;
+        .profile-bar {
 
-    color:#666;
+            height: 100%;
 
-}
-</style>
+            background: linear-gradient(90deg,
+                    #4a7dff,
+                    #74c4ff);
+
+            border-radius: 10px;
+
+            transition: .3s;
+
+        }
+
+
+        .profile-point-text {
+
+            font-size: 12px;
+
+            margin-top: 4px;
+
+            color: #666;
+
+        }
+    </style>
 </head>
 
 <body>
 
-<!-- 通報確認モーダル -->
-<div id="confirmModal" style="
+    <!-- 通報確認モーダル -->
+    <div id="confirmModal" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+justify-content:center;
+align-items:center;
+z-index:999;
+">
+
+        <div style="
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+    ">
+
+            <p id="confirmMessage"></p>
+
+            <button id="reportOK" onclick="confirmReport(true)">
+                OK
+            </button>
+
+            <button onclick="confirmReport(false)">
+                キャンセル
+            </button>
+
+        </div>
+
+    </div>
+<!-- 通知削除確認モーダル -->
+<div id="deleteNotifyModal" style="
 display:none;
 position:fixed;
 top:0;
@@ -559,21 +658,22 @@ z-index:999;
     text-align:center;
     ">
 
-        <p id="confirmMessage"></p>
+        <p id="deleteNotifyMessage">
+            この通知を削除しますか？
+        </p>
 
-        <button id="reportOK" onclick="confirmReport(true)">
+        <button onclick="confirmDeleteNotify(true)">
             OK
         </button>
 
-        <button onclick="confirmReport(false)">
+        <button onclick="confirmDeleteNotify(false)">
             キャンセル
         </button>
 
     </div>
 
 </div>
-<div id="profileModal"
-style="
+    <div id="profileModal" style="
 display:none;
 position:fixed;
 top:0;
@@ -586,7 +686,7 @@ align-items:center;
 z-index:999;
 ">
 
-<div style="
+        <div style="
 background:white;
 padding:20px;
 border-radius:10px;
@@ -594,37 +694,38 @@ width:300px;
 text-align:center;
 ">
 
-<img id="viewIcon"
-style="
+            <img id="viewIcon" style="
 width:80px;
 height:80px;
 border-radius:50%;
 object-fit:cover;
 ">
-<h3 id="viewName"></h3>
-<p id="viewProfile"></p>
+            <h3 id="viewName"></h3>
+            <p id="viewProfile"></p>
 
-<div style="margin-top:15px;">
-<input id="givePointAmount" type="number" min="1" placeholder="渡すポイント"
-style="width:120px;">
-<button onclick="givePoint()">ポイントをあげる</button>
-</div>
-<hr>
-<button id="viewReport"> 通報 </button>
+            <div style="margin-top:15px;">
+                <input id="givePointAmount" type="number" min="1" placeholder="渡すポイント" style="width:120px;">
+                <button onclick="givePoint()">ポイントをあげる</button>
+                <div id="givePointMax" style="font-size:12px;color:#777;margin-top:5px;">
+                    送信可能ポイント: 0
+                </div>
+            </div>
+            <hr>
+            <button id="viewReport"> 通報 </button>
 
-<button onclick=" document.getElementById('profileModal').style.display='none' ">
-閉じる
-</button>
-<div id="pointMessage" style="
+            <button onclick=" document.getElementById('profileModal').style.display='none' ">
+                閉じる
+            </button>
+            <div id="pointMessage" style="
 color:#555;
 margin-top:10px;
 font-size:14px;
 "></div>
-</div>
-</div>
+        </div>
+    </div>
 
-<!-- アカウント削除確認モーダル -->
-<div id="deleteModal" style="
+    <!-- アカウント削除確認モーダル -->
+    <div id="deleteModal" style="
 display:none;
 position:fixed;
 top:0;
@@ -637,90 +738,176 @@ align-items:center;
 z-index:999;
 ">
 
-    <div style="
+        <div style="
     background:white;
     padding:20px;
     border-radius:10px;
     text-align:center;
     ">
 
-        <p id="deleteMessage">
-            アカウントを削除しますか？
-        </p>
+            <p id="deleteMessage">
+                アカウントを削除しますか？
+            </p>
 
-        <button onclick="confirmDelete(true)">
-            OK
-        </button>
+            <button onclick="confirmDelete(true)">
+                OK
+            </button>
 
-        <button onclick="confirmDelete(false)">
-            キャンセル
-        </button>
+            <button onclick="confirmDelete(false)">
+                キャンセル
+            </button>
 
-    </div>
-
-</div>
-
-
-
-<div id="app">
-
-
-<!-- ログイン画面 -->
-<div id="setup">
-
-    <div id="loginMessage"></div>
-
-    <input id="setName" placeholder="ユーザー名">
-
-    <input 
-    id="setPassword" 
-    type="password" 
-    placeholder="パスワード">
-
-    <input 
-    id="setRoom" 
-    value="room" 
-    placeholder="参加するチャット">
-
-
-    <button onclick="createUser()">
-        新規作成
-    </button>
-
-    <button onclick="startChat()">
-        ログイン
-    </button>
-
-</div>
-
-
-
-<!-- 上部メニュー -->
-<div id="top" style="display:none;">
-
-    <button id="themeButton" onclick="toggleThemeMenu()">▼</button>
-
-    <div id="themeMenu">
-        <button class="theme blue" onclick="changeTheme('blue')">青</button>
-        <button class="theme green" onclick="changeTheme('green')">緑</button>
-        <button class="theme red" onclick="changeTheme('red')">赤</button>
-        <button class="theme dark" onclick="changeTheme('dark')">黒</button>
-    </div>
-
-    <button onclick="openAccountMenu()">⚙</button>
-
-    <span id="profile"></span>
-
-    <div id="pointBox">
-        <div id="pointText">0 / 100</div>
-        <div id="pointBarBg">
-            <div id="pointBar"></div>
         </div>
+
     </div>
 
 
 
-<div id="accountMenu" style="
+    <div id="app">
+
+
+        <!-- ログイン画面 -->
+        <div id="setup">
+
+            <div id="loginMessage"></div>
+
+            <input id="setName" placeholder="ユーザー名">
+
+            <input id="setPassword" type="password" placeholder="パスワード">
+
+            <input id="setRoom" value="room" placeholder="参加するチャット">
+
+
+            <button onclick="createUser()">
+                新規作成
+            </button>
+
+            <button onclick="startChat()">
+                ログイン
+            </button>
+
+        </div>
+
+
+
+        <!-- 上部メニュー -->
+        <div id="top" style="display:none;">
+
+            <button id="themeButton" onclick="toggleThemeMenu()">▼</button>
+
+            <div id="themeMenu">
+                <button class="theme blue" onclick="changeTheme('blue')">青</button>
+                <button class="theme green" onclick="changeTheme('green')">緑</button>
+                <button class="theme red" onclick="changeTheme('red')">赤</button>
+                <button class="theme dark" onclick="changeTheme('dark')">黒</button>
+            </div>
+            <div id="notificationArea" style="position:relative;display:inline-block;">
+            
+            <button onclick="showDeveloperNotifications()">
+            🔔 通知
+            </button>
+            
+            <div id="developerNotificationBox"
+            style="
+            display:none;
+            position:absolute;
+            top:45px;
+            left:100%;
+            transform:translateX(-40%);
+            width:320px;
+            max-height:400px;
+            overflow:auto;
+            z-index:9999;
+            padding:10px;
+            background:white;
+            border-radius:12px;
+            box-shadow:0 4px 15px rgba(0,0,0,.3);
+            ">
+            </div>
+
+</div>
+            
+            <div id="developerNotificationBox"
+            style="
+            display:none;
+            position:fixed;
+            top:70px;
+            right:20px;
+            width:320px;
+            max-height:400px;
+            overflow:auto;
+            z-index:9999;
+            padding:10px;
+            background:#eeeeee;
+            border-radius:12px;
+            box-shadow:0 4px 15px rgba(0,0,0,.3);
+            ">
+            </div>
+            <button onclick="openAccountMenu()">⚙</button>
+            <button onclick="openDeveloperDM()">報告</button>
+            
+            
+            <div id="developerDMModal" style="
+            display:none;
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background:rgba(0,0,0,0.4);
+            justify-content:center;
+            align-items:center;
+            z-index:999;
+            ">
+            
+              <div style="
+                background:white;
+                padding:20px;
+                border-radius:10px;
+                text-align:center;
+                width:300px;
+              ">
+            
+                <h3>開発者へ通知</h3>
+            
+                <textarea id="developerDMText"
+                  placeholder="改善点や要望を入力"
+                  style="
+                  width:100%;
+                  height:120px;
+                  resize:none;
+                  "></textarea>
+            
+                <br>
+            
+                <button onclick="sendDeveloperDM()">
+                  送信
+                </button>
+            
+                <button onclick="closeDeveloperDM()">
+                  閉じる
+                </button>
+            
+              </div>
+            
+            </div>
+            <br>
+            <span id="profile"></span>
+
+            <div id="pointBox">
+                <div id="Rank" style="width:200px; margin-bottom:5px;">順位習得中…</div>
+                <div id="pointText" style="width:200px; margin-bottom:5px;">
+                    0 / 100
+                </div>
+
+                <div id="pointBarBg">
+                    <div id="pointBar"></div>
+                </div>
+            </div>
+
+
+
+            <div id="accountMenu" style="
 display:none;
 position:absolute;
 background:white;
@@ -731,1160 +918,1227 @@ z-index:200;
 ">
 
 
-<h3>
-アカウント設定
-</h3>
-<hr>
+                <h3>
+                    アカウント設定
+                </h3>
+                <hr>
 
-<div style="display:flex;gap:5px;align-items:center;">
-    <input id="newIcon" placeholder="アイコンURL" oninput="updateIconDemo(this.value)">
-    <img id="iconDemo"
-         src="https://placehold.jp/80x80.png"
-         style="
+                <div style="display:flex;gap:5px;align-items:center;">
+                    <input id="newIcon" placeholder="アイコンURL" oninput="updateIconDemo(this.value)">
+                    <img id="iconDemo" src="https://placehold.jp/80x80.png" style="
          width:50px;
          height:50px;
          border-radius:50%;
          object-fit:cover;
          border:1px solid #ccc;">
-</div>
+                </div>
 
-<textarea id="newProfile"
-placeholder="自己紹介"
-style="width:100%;height:80px;"></textarea>
+                <textarea id="newProfile" placeholder="自己紹介" style="width:100%;height:80px;"></textarea>
 
-<button onclick="saveProfile()">
-プロフィール保存
-</button>
-<hr>
-<input 
-id="newUsername" 
-placeholder="新しいユーザー名">
+                <button onclick="saveProfile()">
+                    プロフィール保存
+                </button>
+                <hr>
+                <input id="newUsername" placeholder="新しいユーザー名">
 
 
-<button onclick="changeUsername()">
-ユーザー名変更
-</button>
+                <button onclick="changeUsername()">
+                    ユーザー名変更
+                </button>
 
 
 
 
-<input 
-id="newPassword"
-type="password"
-placeholder="新しいパスワード">
+                <input id="newPassword" type="password" placeholder="新しいパスワード">
 
 
-<button onclick="changePassword()">
-パスワード変更
-</button>
+                <button onclick="changePassword()">
+                    パスワード変更
+                </button>
 
 
-<hr>
+                <hr>
 
 
-<button 
-onclick="openDeleteModal()" 
-style="background:#ff5555">
+                <button onclick="openDeleteModal()" style="background:#ff5555">
 
-アカウント削除
+                    アカウント削除
 
-</button>
+                </button>
 
 
-</div>
+            </div>
 
 
 
-<span id="profile"></span>
+            <span id="profile"></span>
 
 
-</div>
+        </div>
 
 
 
 
-<!-- チャット本体 -->
-<div id="main">
+        <!-- チャット本体 -->
+        <div id="main">
 
 
-<div id="left">
+            <div id="left">
 
 
-<div id="users">
-開始ボタンを押してください
-</div>
+                <div id="users">
+                    開始ボタンを押してください
+                </div>
 
-<div id="chatNotify"></div>
-<div id="chat">
-</div>
+                <div id="chatNotify"></div>
+                <div id="chat">
+                </div>
 
 
 
-<div style="
+                <div style="
 display:flex;
 margin-top:10px;
 gap:5px;
 ">
 
 
-<button onclick="selectImage()">
-＋
-</button>
+                    <button onclick="selectImage()">
+                        ＋
+                    </button>
 
 
-<input 
-id="msg"
-placeholder="メッセージ">
+                    <input id="msg" placeholder="メッセージ">
 
 
-<input 
-type="file"
-id="imageInput"
-accept="image/*"
-style="display:none"
-onchange="loadImage(event)">
+                    <input type="file" id="imageInput" accept="image/*" style="display:none"
+                        onchange="loadImage(event)">
 
 
 
-<button 
-id="sendButton"
-onclick="sendMsg()"
-disabled>
+                    <button id="sendButton" onclick="sendMsg()" disabled>
 
-送信
+                        送信
 
-</button>
+                    </button>
 
 
-</div>
+                </div>
 
 
-<div id="imagePreview"></div>
+                <div id="imagePreview"></div>
 
 
-</div>
+            </div>
 
 
 
 
-<!-- 参加者 -->
-<div id="memberPanel">
+            <!-- 参加者 -->
+            <div id="memberPanel">
 
 
-<h3>
-参加者
-</h3>
+                <h3>
+                    参加者
+                </h3>
 
 
-<ul id="memberList"></ul>
+                <ul id="memberList"></ul>
 
 
-</div>
+            </div>
 
 
 
-</div>
+        </div>
 
 
-</div>
+    </div>
+    <script>
 
 
 
-<script>
-let historyLoading=true;
-let pendingJoinMessages=[];
-let lastMessageDate = "";
-myProfile={
- icon_url:"",
- profile:"",
- points:0
-};
-
-const SUPABASE_URL =
-"https://ldnmqfmebvyzlmhgnljf.supabase.co";
-
-const SUPABASE_ANON_KEY =
-"sb_publishable_sJCCy8PpxucgNgweKh9jsA_BKne3v3U";
-
-
-const supabaseClient =
-supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-);
-
-let imageData = null;
-const themes = {
-
-    blue:{
-        body:"#eef0f3",
-        panel:"#ffffff",
-        input:"#ffffff",
-        me:"#d9ffd9",
-        other:"#e8f1ff",
-        button:"#4a7dff",
-        text:"#000000"
-    },
-
-
-    red:{
-        body:"#fff0f0",
-        panel:"#fffafa",
-        input:"#fffafa",
-        me:"#ffe0e0",
-        other:"#ffeaea",
-        button:"#ff6666",
-        text:"#333333"
-    },
-
-
-    green:{
-        body:"#f0fff2",
-        panel:"#fbfffc",
-        input:"#fbfffc",
-        me:"#dcffe0",
-        other:"#eaffed",
-        button:"#45b85a",
-        text:"#333333"
-    },
-
-
-    dark:{
-        body:"#202124",
-        panel:"#303134",
-        input:"#3c4043",
-        me:"#355d3b",
-        other:"#44475a",
-        button:"#666666",
-        text:"#ffffff"
-    }
-
-};
-let currentTheme = "blue";
-
-
-function changeTheme(type){
-
-    if(!themes[type]) return;
-
-    currentTheme = type;
-
-    const t = themes[type];
-
-
-    // 背景
-    document.body.style.background = t.body;
-
-
-    // チャット
-    const chatBox = document.getElementById("chat");
-    if(chatBox){
-        chatBox.style.background = t.panel;
-    }
-
-
-    // 参加者パネル
-    const panel = document.getElementById("memberPanel");
-    if(panel){
-        panel.style.background = t.panel;
-        panel.style.color = t.text;
-    }
-
-
-    // 入力欄
-    [
-        "msg",
-        "setName",
-        "setPassword",
-        "setRoom"
-    ].forEach(id=>{
-    
-        const input = document.getElementById(id);
-    
-        if(input){
-    
-            input.style.background = t.input;
-            input.style.color = t.text;
-            input.style.borderColor =
-                type==="dark" ? "#666" : "#ccc";
-    
-        }
-    
-    });
-
-
-    // 既存メッセージ
-    document.querySelectorAll(".msg").forEach(e=>{
-
-        if(e.classList.contains("me")){
-            e.style.background = t.me;
-        }else{
-            e.style.background = t.other;
-        }
-
-        e.style.color = t.text;
-
-    });
-
-
-
-    // 時間表示
-    document.querySelectorAll(".time").forEach(e=>{
-        e.style.color =
-        type==="dark" ? "#bbbbbb" : "#999999";
-    });
-
-
-
-    // システムメッセージ
-    document.querySelectorAll(".system").forEach(e=>{
-        e.style.color =
-        type==="dark" ? "#bbbbbb" : "#777777";
-    });
-
-
-
-    // ボタン
-    document.querySelectorAll("button").forEach(e=>{
-
-        // テーマ選択ボタンは変更しない
-        if(e.classList.contains("theme"))
-            return;
-
-
-        // 送信ボタン
-        if(e.id==="sendButton"){
-
-            // ダーク時は藍色固定
-            if(type==="dark"){
-                e.style.background="#3949ab";
-            }else{
-                e.style.background=t.button;
-            }
-
-            return;
-        }
-
-
-        e.style.background=t.button;
-
-    });
-
-
-
-    // 参加者リスト
-    document.querySelectorAll("#memberList li").forEach(e=>{
-        e.style.color=t.text;
-
-        if(type==="dark"){
-            e.style.borderColor="#555";
-        }else{
-            e.style.borderColor="#eee";
-        }
-    });
-
-
-
-    // メニュー
-    const menu=document.getElementById("themeMenu");
-
-    if(menu){
-        menu.style.background =
-        type==="dark" ? "#303134" : "#ffffff";
-    }
-
-
-    // 全体文字
-    document.body.style.color=t.text;
-    document.querySelectorAll("input").forEach(e=>{
-
-    e.style.background = t.input;
-    e.style.color = t.text;
-
-    if(type==="dark"){
-        e.style.border = "1px solid #666";
-    }else{
-        e.style.border = "1px solid #ccc";
-    }
-    document.documentElement.style.setProperty(
-    "--notify-color",
-    t.button
-);
-
-});
-}
-let historyLoaded=false;
-let nameConflict = false;
-let myNameCheck = false;
-
-// 通報記録
-let reports = {};
-let reportHistory = {};
-
-
-// BANリスト
-let bannedUsers = {};
-
-
-// 自分がBANされているか
-let isBanned=false;
-
-
-let syncFinished=false;
-let client = null;
-let clientId = null;
-let userName = "";
-let userRoom = "";
-
-let history = {};
-
-let members = {};
-
-let knownMembers = {};
-
-let started = false;
-
-const chat =
-document.getElementById("chat");
-
-
-
-
-
-async function getFixedUserId(){
-
-
-    let deviceKey =
-    localStorage.getItem("deviceKey");
-
-
-    if(!deviceKey){
-
-        deviceKey =
-        crypto.randomUUID();
-
-        localStorage.setItem(
-            "deviceKey",
-            deviceKey
-        );
-
-    }
-
-
-
-    // 既存ユーザー検索
-
-    let {data,error}=await supabaseClient
-    .from("users")
-    .select("id")
-    .eq(
-        "device_key",
-        deviceKey
-    )
-    .single();
-
-
-
-    // BAN確認
-    if(data.ban_until){
-            
-        const banTime =
-        new Date(data.ban_until).getTime();
-        
-        
-        const now =
-        Date.now();
-        console.log(
-            "現在時刻:",
-            new Date().toString()
-        );
-        
-        console.log(
-            "BAN期限:",
-            new Date(data.ban_until).toString()
-        );        
-        
-        console.log(
-            "BAN比較:",
-            banTime,
-            now
-        );
-        
-        
-        if(
-            banTime > now
-        ){
-        
-            const remain =
-            Math.ceil(
-                (banTime - now)
-                /
-                60000
-            );
-        
-        
-            console.log(
-                "BAN中",
-                remain,
-                "分"
-            );
-        
-        
-            isBanned=true;
-        
-        
-            showChatNotify(
-                `BAN中です。残り${remain}分`
-            );
-        
-        
-            return;
-        
-        }
-    
-    }
-    myProfile = {
-        icon_url: data.icon_url || "",
-        profile: data.profile || ""
-    };    
-    
-    showLoginMessage(
-        "ログイン成功",
-        "#22aa22"
-    );
-    myProfile.icon_url=data.icon_url || "";
-    myProfile.profile=data.profile || "";
-    
-    
-    return data.id;
-}
-// 開始
-
-async function startChat(){
-    const userId = await loginUser();
-
-    if(!userId){
-        return;
-    }
-
-    userName =
-        document.getElementById("setName")
-        .value.trim();
-
-
-    userRoom =
-        document.getElementById("setRoom")
-        .value.trim();
-    document.getElementById("top").style.display = "flex";
-
-    if(!userName || !userRoom){
-
-        showChatNotify("入力してください");
-        return;
-
-    }
-
-
-
-    clientId =
-        "id-" + userId;
-    const {data:userData,error}=await supabaseClient
-    .from("users")
-    .select("icon_url,profile,username,points")
-    .eq("id",userId)
-    .single();
-        
-    if (userData) {
+        let membersLoading = true;
+        let historyLoading = true;
+        let pendingJoinMessages = [];
+        let lastMessageDate = "";
         myProfile = {
-            icon_url: userData.icon_url || "",
-            profile: userData.profile || "",
-            points: userData.points || 0
+            icon_url: "",
+            profile: "",
+            points: 0
         };
-    
-        userName = userData.username || userName;
-    }
+
+        const SUPABASE_URL =
+            "https://ldnmqfmebvyzlmhgnljf.supabase.co";
+
+        const SUPABASE_ANON_KEY =
+            "sb_publishable_sJCCy8PpxucgNgweKh9jsA_BKne3v3U";
 
 
-    document.getElementById("users")
-    .innerText =
-    "接続中…";
-
-
-
-    started = true;
-
-
-
-    document.getElementById("setup")
-    .style.display="none";
-
-
-    document.getElementById("top")
-    .style.display="block";
-
-
-    document.getElementById("profile")
-    .innerText=
-    `${userName} / ${userRoom}`;
-
-
-
-
-    client = mqtt.connect(
-    
-        "wss://broker.hivemq.com:8884/mqtt",
-    
-        {
-    
-            clientId: clientId,
-    
-            clean:true,
-    
-    
-            // 接続維持（秒）
-            keepalive:30,
-    
-    
-            // 接続タイムアウト
-            connectTimeout:10000,
-    
-    
-            // 自動再接続
-            reconnectPeriod:3000,
-    
-    
-            will:{
-    
-                topic:
-                `chanpro-chat/${userRoom}/offline`,
-    
-    
-                payload:
-                JSON.stringify({
-    
-                    id:clientId,
-    
-                    name:userName,
-    
-                    type:"offline"
-    
-                }),
-    
-    
-                qos:1,
-    
-                retain:false
-    
-            }
-    
-        }
-    
-    );
-
-
-
-
-
-    client.on("connect",async ()=>{
-
-
-        console.log("MQTT connected");
-
-
-
-        client.subscribe(
-
-            `chanpro-chat/${userRoom}/#`,
-
-            {
-                qos:1
-            }
-
-        );
-
-
-
-        nameConflict=false;
-
-        nameCheckFinished=false;
-
-
-
-        // 名前確認
-
-        client.publish(
-
-            `chanpro-chat/${userRoom}/namecheck`,
-
-            JSON.stringify({
-
-                type:"check",
-
-                id:clientId,
-
-                name:userName
-
-            }),
-
-            {
-
-                qos:1
-
-            }
-
-        );
-
-
-
-        /*
-            名前確認待ち
-            2秒固定
-        */
-
-        setTimeout(async ()=>{
-        
-            nameCheckFinished = true;
-        
-        
-            if(nameConflict){
-        
-                showChatNotify("同じユーザー名がすでに使用されています");
-        
-                client.end(true);
-        
-                location.reload();
-        
-                return;
-        
-            }
-        
-        
-            // 履歴取得
-            await loadOrSyncHistory();
-            
-            await new Promise(resolve=>setTimeout(resolve,500));           
-            pendingJoinMessages=[];
-            
-            
-            knownMembers[clientId]=true;
-            
-            
-            // 自分の参加通知
-            addMsg(
-                "システム",
-                `${userName}さんが参加しました`,
-                false,
-                Date.now()
+        const supabaseClient =
+            supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_ANON_KEY
             );
-        
-        
-            announce();
-        
-        
-            const sendButton=document.getElementById("sendButton");
-        
-            if(sendButton){
-        
-                sendButton.disabled=false;
-        
+
+        let imageData = null;
+        const themes = {
+
+            blue: {
+                body: "#eef0f3",
+                panel: "#ffffff",
+                input: "#ffffff",
+                me: "#d9ffd9",
+                other: "#e8f1ff",
+                button: "#4a7dff",
+                text: "#000000"
+            },
+
+
+            red: {
+                body: "#fff0f0",
+                panel: "#fffafa",
+                input: "#fffafa",
+                me: "#ffe0e0",
+                other: "#ffeaea",
+                button: "#ff6666",
+                text: "#333333"
+            },
+
+
+            green: {
+                body: "#f0fff2",
+                panel: "#fbfffc",
+                input: "#fbfffc",
+                me: "#dcffe0",
+                other: "#eaffed",
+                button: "#45b85a",
+                text: "#333333"
+            },
+
+
+            dark: {
+                body: "#202124",
+                panel: "#303134",
+                input: "#3c4043",
+                me: "#355d3b",
+                other: "#44475a",
+                button: "#666666",
+                text: "#ffffff"
             }
-        
-        
-            startBanWatcher();
-        
-        
-            document.getElementById("users").innerText="読み込み完了";
-        
-        
-        },1000);
+
+        };
+        let currentTheme = "blue";
 
 
-    });
+        function changeTheme(type) {
+
+            if (!themes[type]) return;
+
+            currentTheme = type;
+
+            const t = themes[type];
 
 
+            // 背景
+            document.body.style.background = t.body;
 
 
+            // チャット
+            const chatBox = document.getElementById("chat");
+            if (chatBox) {
+                chatBox.style.background = t.panel;
+            }
 
 
-    client.on(
-
-        "message",
-
-        receiveMQTT
-
-    );
-
-    client.on("reconnect",()=>{
-    
-        document.getElementById("users")
-        .innerText="再接続中…";
-    
-    });
-    
-    
-    client.on("offline",()=>{
-    
-        document.getElementById("users")
-        .innerText="通信待機中…";
-    
-    });
-    
-    
-    client.on("error",(err)=>{
-        document.getElementById("users")
-        .innerText="接続が拒否されています。更新をしてください。";    
-        console.log("MQTT error",err);
-    
-    });
+            // 参加者パネル
+            const panel = document.getElementById("memberPanel");
+            if (panel) {
+                panel.style.background = t.panel;
+                panel.style.color = t.text;
+            }
 
 
-}
+            // 入力欄
+            [
+                "msg",
+                "setName",
+                "setPassword",
+                "setRoom"
+            ].forEach(id => {
 
+                const input = document.getElementById(id);
 
+                if (input) {
 
+                    input.style.background = t.input;
+                    input.style.color = t.text;
+                    input.style.borderColor =
+                        type === "dark" ? "#666" : "#ccc";
 
-
-
-
-// MQTT受信
-
-async function receiveMQTT(topic,message){
-
-
-    let data;
-
-
-    try{
-
-        data =
-        JSON.parse(
-            message.toString()
-        );
-
-    }catch(e){
-
-        return;
-
-    }
-
-
-
-    if(topic.endsWith("/msg")){
-
-        receiveMessage(data);
-
-    }
-
-
-
-    if(topic.endsWith("/sync")){
-
-        syncMessage(data);
-
-    }
-
-
-    if(topic.endsWith("/namecheck")){
-    
-    
-        if(data.type==="check"
-           &&
-           data.name===userName
-           &&
-           data.id!==clientId){
-    
-    
-            client.publish(
-    
-                `chanpro-chat/${userRoom}/namecheck`,
-    
-                JSON.stringify({
-    
-                    type:"conflict",
-    
-                    id:data.id,
-    
-                    name:userName
-    
-                }),
-    
-                {
-                    qos:1
                 }
-    
-            );
-    
-        }
-    
-    
-    
-        if(data.type==="conflict"
-           &&
-           data.name===userName){
-        
-            nameConflict=true;
-        
-        }
-    
-    
-    }
-    if(topic.endsWith("/point")){
-    
-        // 自分宛てだけ処理
-        if(data.target !== clientId) return;
-    
-    
-        const uid=clientId.replace("id-","");
-    
-    
-        // DBへ追加
-        await supabaseClient.rpc(
-            "add_user_points",
-            {
-                userid:uid,
-                amount:data.amount
+
+            });
+
+
+            // 既存メッセージ
+            document.querySelectorAll(".msg").forEach(e => {
+
+                if (e.classList.contains("me")) {
+                    e.style.background = t.me;
+                } else {
+                    e.style.background = t.other;
+                }
+
+                e.style.color = t.text;
+
+            });
+
+
+
+            // 時間表示
+            document.querySelectorAll(".time").forEach(e => {
+                e.style.color =
+                    type === "dark" ? "#bbbbbb" : "#999999";
+            });
+
+
+
+            // システムメッセージ
+            document.querySelectorAll(".system").forEach(e => {
+                e.style.color =
+                    type === "dark" ? "#bbbbbb" : "#777777";
+            });
+
+
+
+            // ボタン
+            document.querySelectorAll("button").forEach(e => {
+
+                // テーマ選択ボタンは変更しない
+                if (e.classList.contains("theme"))
+                    return;
+
+
+                // 送信ボタン
+                if (e.id === "sendButton") {
+
+                    // ダーク時は藍色固定
+                    if (type === "dark") {
+                        e.style.background = "#3949ab";
+                    } else {
+                        e.style.background = t.button;
+                    }
+
+                    return;
+                }
+
+
+                e.style.background = t.button;
+
+            });
+
+
+
+            // 参加者リスト
+            document.querySelectorAll("#memberList li").forEach(e => {
+                e.style.color = t.text;
+
+                if (type === "dark") {
+                    e.style.borderColor = "#555";
+                } else {
+                    e.style.borderColor = "#eee";
+                }
+            });
+
+
+
+            // メニュー
+            const menu = document.getElementById("themeMenu");
+
+            if (menu) {
+                menu.style.background =
+                    type === "dark" ? "#303134" : "#ffffff";
             }
-        );
-    
-    
-        // 表示ポイント更新
-        myProfile.points=
-            (myProfile.points || 0)
-            + data.amount;
-    
-    
-        updatePointBar(myProfile.points);
-    
-    
-        // 他人へ反映
-        client.publish(
-            `chanpro-chat/${userRoom}/presence`,
-            JSON.stringify({
-                id:clientId,
-                name:userName,
-                icon_url:myProfile.icon_url || "",
-                profile:myProfile.profile || "",
-                points:myProfile.points,
-                time:Date.now()
-            }),
-            {qos:0}
-        );
-    
-    
-        showChatNotify(
-            data.fromName+
-            "さんから"+
-            data.amount+
-            "ポイントが送信されました"
-        );
-    }
-    if(topic.endsWith("/presence")){
-    
-    
-        if(data.id!==clientId && !knownMembers[data.id]){
-    
-    
-            knownMembers[data.id]=true;
-    
-    
-            if(historyLoading){
-    
-                // 履歴読み込み中なら保存
-                pendingJoinMessages.push(data);
-    
-    
-            }else{
-    
-    
+
+
+            // 全体文字
+            document.body.style.color = t.text;
+            document.querySelectorAll("input").forEach(e => {
+
+                e.style.background = t.input;
+                e.style.color = t.text;
+
+                if (type === "dark") {
+                    e.style.border = "1px solid #666";
+                } else {
+                    e.style.border = "1px solid #ccc";
+                }
+                document.documentElement.style.setProperty(
+                    "--notify-color",
+                    t.button
+                );
+
+            });
+        }
+        let historyLoaded = false;
+        let nameConflict = false;
+        let myNameCheck = false;
+
+        // 通報記録
+        let reports = {};
+        let reportHistory = {};
+
+
+        // BANリスト
+        let bannedUsers = {};
+
+
+        // 自分がBANされているか
+        let isBanned = false;
+
+
+        let syncFinished = false;
+        let client = null;
+        let clientId = null;
+        let userName = "";
+        let userRoom = "";
+        let developerNotifications=[];
+        let history = {};
+        let syncBuffer = [];
+        let members = {};
+        let developerHistoryTopic = "";
+        let knownMembers = {};
+        let iconCache = {};
+        let notificationHistoryIds = {};
+        let started = false;
+        let messageQueue = Promise.resolve();
+        const chat =
+            document.getElementById("chat");
+        
+
+
+        async function getFixedUserId() {
+
+
+            let deviceKey =
+                localStorage.getItem("deviceKey");
+
+
+            if (!deviceKey) {
+
+                deviceKey =
+                    crypto.randomUUID();
+
+                localStorage.setItem(
+                    "deviceKey",
+                    deviceKey
+                );
+
+            }
+
+
+
+            // 既存ユーザー検索
+
+            let { data, error } = await supabaseClient
+                .from("users")
+                .select("id")
+                .eq(
+                    "device_key",
+                    deviceKey
+                )
+                .single();
+
+
+
+            // BAN確認
+            if (data.ban_until) {
+
+                const banTime =
+                    new Date(data.ban_until).getTime();
+
+
+                const now =
+                    Date.now();
+                console.log(
+                    "現在時刻:",
+                    new Date().toString()
+                );
+
+                console.log(
+                    "BAN期限:",
+                    new Date(data.ban_until).toString()
+                );
+
+                console.log(
+                    "BAN比較:",
+                    banTime,
+                    now
+                );
+
+
+                if (
+                    banTime > now
+                ) {
+
+                    const remain =
+                        Math.ceil(
+                            (banTime - now)
+                            /
+                            60000
+                        );
+
+
+                    console.log(
+                        "BAN中",
+                        remain,
+                        "分"
+                    );
+
+
+                    isBanned = true;
+
+
+                    showChatNotify(
+                        `BAN中です。残り${remain}分`,null
+                    );
+
+
+                    return;
+
+                }
+
+            }
+            myProfile = {
+                icon_url: data.icon_url || "",
+                profile: data.profile || ""
+            };
+
+            showLoginMessage(
+                "ログイン成功",
+                "#22aa22"
+            );
+            myProfile.icon_url = data.icon_url || "";
+            myProfile.profile = data.profile || "";
+
+
+            return data.id;
+        }
+        // 開始
+
+        async function startChat() {
+            const userId = await loginUser();
+
+            if (!userId) {
+                return;
+            }
+
+            userName =
+                document.getElementById("setName")
+                    .value.trim();
+
+
+            userRoom =
+                document.getElementById("setRoom")
+                    .value.trim();
+            document.getElementById("top").style.display = "flex";
+
+            if (!userName || !userRoom) {
+
+                showChatNotify("入力してください",null);
+                return;
+
+            }
+
+
+
+            clientId =
+                "id-" + userId;
+            const { data: userData, error } = await supabaseClient
+                .from("users")
+                .select("icon_url,profile,username,points")
+                .eq("id", userId)
+                .single();
+
+            if (userData) {
+                myProfile = {
+                    icon_url: userData.icon_url || "",
+                    profile: userData.profile || "",
+                    points: userData.points || 0
+                };
+
+                userName = userData.username || userName;
+            }
+
+
+            document.getElementById("users")
+                .innerText =
+                "接続中…";
+
+
+
+            started = true;
+
+
+
+            document.getElementById("setup")
+                .style.display = "none";
+
+
+            document.getElementById("top")
+                .style.display = "block";
+
+
+            document.getElementById("profile")
+                .innerText =
+                `${userName} / ${userRoom}`;
+
+
+
+
+            client = mqtt.connect(
+
+                "wss://broker.hivemq.com:8884/mqtt",
+
+                {
+
+                    clientId: clientId,
+
+                    clean: true,
+
+
+                    // 接続維持（秒）
+                    keepalive: 30,
+
+
+                    // 接続タイムアウト
+                    connectTimeout: 10000,
+
+
+                    // 自動再接続
+                    reconnectPeriod: 3000,
+
+
+                    will: {
+
+                        topic:
+                            `chanpro-chat/${userRoom}/offline`,
+
+
+                        payload:
+                            JSON.stringify({
+
+                                id: clientId,
+
+                                name: userName,
+
+                                type: "offline"
+
+                            }),
+
+
+                        qos: 1,
+
+                        retain: false
+
+                    }
+
+                }
+
+            );
+
+
+
+
+
+                client.on("connect", async()=>{
+                
+                    console.log("MQTT connected");
+                
+                    client.subscribe(`chanpro-chat/${userRoom}/#`,{qos:1});
+                
+                    const devUid = clientId.replace("id-","");
+                
+                    developerHistoryTopic =
+                        `chanpro-dev/user/${devUid}/history`;
+                
+                    client.subscribe(
+                        developerHistoryTopic,
+                        {qos:1}
+                    );
+                
+                    client.subscribe(
+                        `chanpro-dev/user/${devUid}`,
+                        {qos:1}
+                    );
+                
+                    console.log(
+                        "通知履歴購読:",
+                        developerHistoryTopic
+                    );
+                
+
+
+                nameConflict = false;
+
+                nameCheckFinished = false;
+
+
+
+                // 名前確認
+
+                client.publish(
+
+                    `chanpro-chat/${userRoom}/namecheck`,
+
+                    JSON.stringify({
+
+                        type: "check",
+
+                        id: clientId,
+
+                        name: userName
+
+                    }),
+
+                    {
+
+                        qos: 1
+
+                    }
+
+                );
+
+
+
+                /*
+                    名前確認待ち
+                    2秒固定
+                */
+
+                setTimeout(async () => {
+
+                    nameCheckFinished = true;
+
+
+                    if (nameConflict) {
+
+                        showChatNotify("同じユーザー名がすでに使用されています",null);
+
+                        client.end(true);
+
+                        location.reload();
+
+                        return;
+
+                    }
+
+
+                    // 履歴取得
+                    await loadOrSyncHistory();
+                    await loadDeveloperMessages();
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    pendingJoinMessages = [];
+
+
+                    knownMembers[clientId] = true;
+
+
+                    // 自分の参加通知
+                    addMsg(
+                        "システム",
+                        `${userName}さんが参加しました`,
+                        false,
+                        Date.now()
+                    );
+
+
+                    announce();
+
+
+                    const sendButton = document.getElementById("sendButton");
+
+                    if (sendButton) {
+
+                        sendButton.disabled = false;
+
+                    }
+
+
+                    startBanWatcher();
+
+
+                    membersLoading=false;
+                    showMembers();
+
+
+                }, 1000);
+
+
+            });
+
+
+
+
+
+
+            client.on(
+
+                "message",
+
+                receiveMQTT
+
+            );
+
+            client.on("reconnect", () => {
+
+                document.getElementById("users")
+                    .innerText = "再接続中…";
+
+            });
+
+
+            client.on("offline", () => {
+
+                document.getElementById("users")
+                    .innerText = "通信待機中…";
+
+            });
+
+
+            client.on("error", (err) => {
+                document.getElementById("users")
+                    .innerText = "接続が拒否されています。更新をしてください。";
+                console.log("MQTT error", err);
+
+            });
+
+
+        }
+
+
+
+
+
+
+
+        // MQTT受信
+
+        async function receiveMQTT(topic, message) {
+
+
+            let data;
+
+
+            try {
+
+                data =
+                    JSON.parse(
+                        message.toString()
+                    );
+
+            } catch (e) {
+
+                return;
+
+            }
+            // 開発者からの個別通知
+            if(topic===`chanpro-dev/user/${clientId.replace("id-","")}`){
+            
+                console.log(
+                    "開発者通知受信:",
+                    data
+                );
+            
+            
+            if("developer_message"===data.type){
+            
+                // 不要な通知を破棄
+                if(data.msg==="通知内容"){
+                    console.log("不要通知を無視:",data.msg);
+                    return;
+                }
+            
+                const notify={
+                    id:crypto.randomUUID(),
+                    msg:data.msg,
+                    time:data.time||Date.now()
+                };
+            
+                addDeveloperNotification(notify);
+            
+                saveDeveloperNotificationHistory();
+            }
+            
+                return;
+            }
+
+
+            if (topic.endsWith("/msg")) {
+
+                receiveMessage(data);
+
+            }
+
+
+
+            if (topic.endsWith("/sync")) {
+
+                syncMessage(data);
+
+            }
+
+
+            if (topic.endsWith("/namecheck")) {
+
+
+                if (data.type === "check"
+                    &&
+                    data.name === userName
+                    &&
+                    data.id !== clientId) {
+
+
+                    client.publish(
+
+                        `chanpro-chat/${userRoom}/namecheck`,
+
+                        JSON.stringify({
+
+                            type: "conflict",
+
+                            id: data.id,
+
+                            name: userName
+
+                        }),
+
+                        {
+                            qos: 1
+                        }
+
+                    );
+
+                }
+
+
+
+                if (data.type === "conflict"
+                    &&
+                    data.name === userName) {
+
+                    nameConflict = true;
+
+                }
+
+
+            }
+            if (topic.endsWith("/point")) {
+
+                // 自分宛てだけ処理
+                if (data.target !== clientId) return;
+
+
+                const uid = clientId.replace("id-", "");
+
+
+                // DBへ追加
+                await supabaseClient.rpc(
+                    "add_user_points",
+                    {
+                        userid: uid,
+                        amount: data.amount
+                    }
+                );
+
+
+                // 表示ポイント更新
+                myProfile.points =
+                    (myProfile.points || 0)
+                    + data.amount;
+
+
+                updatePointBar(myProfile.points);
+
+
+                // 他人へ反映
+                client.publish(
+                    `chanpro-chat/${userRoom}/presence`,
+                    JSON.stringify({
+                        id: clientId,
+                        name: userName,
+                        icon_url: myProfile.icon_url || "",
+                        profile: myProfile.profile || "",
+                        points: myProfile.points,
+                        time: Date.now()
+                    }),
+                    { qos: 1 }
+                );
+
+
+                showChatNotify(
+                    data.fromName +
+                    "さんから" +
+                    data.amount +
+                    "ポイントが送信されました","ポイント通知"
+                );
+            }
+            if (topic.endsWith("/presence")) {
+
+
+                if (data.id !== clientId && !knownMembers[data.id]) {
+
+
+                    knownMembers[data.id] = true;
+
+
+                    if (historyLoading) {
+
+                        // 履歴読み込み中なら保存
+                        pendingJoinMessages.push(data);
+
+
+                    } else {
+
+
+                        addMsg(
+                            "システム",
+                            `${data.name}さんが参加しました`,
+                            false,
+                            Date.now()
+                        );
+
+
+                    }
+
+                }
+
+
+                members[data.id] = {
+                    name: data.name,
+                    icon_url: data.icon_url || "",
+                    profile: data.profile || "",
+                    points: data.points || 0,
+                    time: Date.now()
+                };
+                if (data.id === clientId) {
+                    myProfile.points = data.points || 0;
+                    updatePointBar(myProfile.points);
+                }
+
+                showMembers();
+
+            }
+
+
+
+
+            if (topic.endsWith("/offline")) {
+
+
+                const id = data.id;
+
+
+                if (!members[id])
+                    return;
+
+
+
+                const name =
+                    members[id].name
+                    ||
+                    data.name;
+
+
+
+                delete members[id];
+
+                delete knownMembers[id];
+
+
+
+                addMsg(
+
+                    "システム",
+
+                    `${name}さんが退出しました`,
+
+                    false,
+
+                    Date.now()
+
+                );
+
+
+
+                showMembers();
+                if(Object.keys(members).length===1){
+                    saveRetainHistory();
+                }
+
+            }
+            if (topic.endsWith("/report")) {
+
+
+                if (!data.deviceId)
+                    return;
+
+
+
+                const reportKey =
+                    data.deviceId
+                    +
+                    "_"
+                    +
+                    data.target;
+
+
+
+                // 同じ端末の重複防止
+
+                if (reports[reportKey])
+                    return;
+
+
+
+                reports[reportKey] = data;
+
+
+
+                if (!reports[data.target]) {
+
+                    reports[data.target] = [];
+
+                }
+
+
+
+                reports[data.target]
+                    .push(data);
+
+
+
+                console.log(
+                    "通報:",
+                    data
+                );
+
+
+
+                const count =
+                    reports[data.target].length;
+
+
+
+                console.log(
+                    "通報数:",
+                    count
+                );
+                if (count >= 3) { banUser(data.target, data.name); }
+            }
+            if (topic.endsWith("/ban")) {
+
+
+                if (bannedUsers[data.id])
+                    return;
+
+
+                bannedUsers[data.id] = data;
+
+
                 addMsg(
                     "システム",
-                    `${data.name}さんが参加しました`,
+                    `${t}さんがBANされました (${minutes}分)`,
                     false,
                     Date.now()
                 );
-    
-    
+
+
+                if (data.id === clientId) {
+
+                    isBanned = true;
+
+                    document.getElementById("sendButton")
+                        .disabled = true;
+
+                }
+
             }
-    
-        }
-    
-    
-        members[data.id]={
-         name:data.name,
-         icon_url:data.icon_url || "",
-         profile:data.profile || "",
-         points:data.points || 0,
-         time:Date.now()
-        };
-        if(data.id === clientId){
-            myProfile.points = data.points || 0;
-            updatePointBar(myProfile.points);
-        }
-    
-        showMembers();
-    
-    }
+            if (topic.endsWith("/kick")) {
+
+                if (data.id === clientId) {
+
+                    addMsg(
+                        "システム",
+                        "管理者により退出されました",
+                        false,
+                        Date.now()
+                    );
 
 
+                    if (client) {
+                        client.end(true);
+                        client = null;
+                    }
 
 
-    if(topic.endsWith("/offline")){
+                    showChatNotify(
+                        "管理者により退出されました",null
+                    );
 
 
-        const id=data.id;
+                    location.reload();
+                }
 
-
-        if(!members[id])
-            return;
-
-
-
-        const name =
-        members[id].name
-        ||
-        data.name;
-
-
-
-        delete members[id];
-
-        delete knownMembers[id];
-
-
-
-        addMsg(
-
-            "システム",
-
-            `${name}さんが退出しました`,
-
-            false,
-
-            Date.now()
-
-        );
-
-
-
-        showMembers();
-
-
-    }
-    if(topic.endsWith("/report")){
-    
-    
-        if(!data.deviceId)
-            return;
-    
-    
-    
-        const reportKey =
-        data.deviceId
-        +
-        "_"
-        +
-        data.target;
-    
-    
-    
-        // 同じ端末の重複防止
-    
-        if(reports[reportKey])
-            return;
-    
-    
-    
-        reports[reportKey]=data;
-    
-    
-    
-        if(!reports[data.target]){
-    
-            reports[data.target]=[];
-    
-        }
-    
-    
-    
-        reports[data.target]
-        .push(data);
-    
-    
-    
-        console.log(
-            "通報:",
-            data
-        );
-    
-    
-    
-        const count =
-        reports[data.target].length;
-    
-    
-    
-        console.log(
-            "通報数:",
-            count
-        );
-    if(count>=3){banUser(data.target,data.name);}}
-    if(topic.endsWith("/ban")){
-    
-    
-        if(bannedUsers[data.id])
-            return;
-    
-    
-        bannedUsers[data.id]=data;
-    
-    
-        addMsg(
-            "システム",
-            `${t}さんがBANされました (${minutes}分)`,
-            false,
-            Date.now()
-        );
-    
-    
-        if(data.id===clientId){
-    
-            isBanned=true;
-    
-            document.getElementById("sendButton")
-            .disabled=true;
-    
-        }
-    
-    }
-    if(topic.endsWith("/kick")){
-    
-        if(data.id===clientId){
-    
-            addMsg(
-                "システム",
-                "管理者により退出されました",
-                false,
-                Date.now()
-            );
-    
-    
-            if(client){
-                client.end(true);
-                client=null;
             }
-    
-    
-            showChatNotify(
-                "管理者により退出されました"
+            if(topic.endsWith("/history")){
+                receiveRetainHistory(data);
+                return;
+            }
+            if(developerHistoryTopic && topic===developerHistoryTopic){
+            
+                const list=JSON.parse(message.toString());
+            
+                if(!Array.isArray(list)) return;
+            
+                developerNotifications=list;
+            
+                list.forEach(n=>{
+                    if(n.id){
+                        notificationHistoryIds[n.id]=true;
+                    }
+                });
+            
+                return;
+            }
+            
+            
+            if(topic===`chanpro-dev/user/${clientId.replace("id-","")}`){
+            
+                if(data.type==="developer_message"){
+            
+                    const notify={
+                        id:crypto.randomUUID(),
+                        msg:data.msg,
+                        time:data.time||Date.now()
+                    };
+            
+                    addDeveloperNotification(notify);
+            
+                    saveDeveloperNotificationHistory();
+                }
+            
+                return;
+            }
+            developerNotifications =
+            developerNotifications.filter((n,i,self)=>
+                i===self.findIndex(x=>
+                    x.msg===n.msg &&
+                    x.time===n.time
+                )
             );
-    
-    
-            location.reload();
         }
-    
-    }
-
-}
 
 
 
@@ -1894,35 +2148,23 @@ async function receiveMQTT(topic,message){
 
 
 
-// メッセージ受信
+        // メッセージ受信
 
 function receiveMessage(data){
+    if(!data.msgId) return;
+    if(history[data.msgId]) return;
 
-
-    if(!data.msgId)
-        return;
-
-
-
-    if(history[data.msgId])
-        return;
-
-
-
-    history[data.msgId]=data;
+    history[data.msgId] = data;
 
     const isMe = data.id === clientId;
 
     addMsg(
-
         data.name,
-
         data.msg,
-
         isMe,
-
-        data.time
-
+        data.time,
+        chat,
+        data.id
     );
 }
 
@@ -1931,1715 +2173,1772 @@ function receiveMessage(data){
 
 
 
-function removeImageAndUrl(text){
+        function removeImageAndUrl(text) {
 
-    // data:image削除
-    text=text.replace(/data:image\/[^\s]+/g,"");
+            // data:image削除
+            text = text.replace(/data:image\/[^\s]+/g, "");
 
-    // URL削除
-    text=text.replace(
-        /(https?:\/\/[^\s]+)/g,
-        ""
-    );
+            // URL削除
+            text = text.replace(
+                /(https?:\/\/[^\s]+)/g,
+                ""
+            );
 
-    return text.trim();
+            return text.trim();
 
-}
-
-
-async function addPoints(text){
-
-  // 参加者が2人未満ならポイントなし
-  if(Object.keys(members).length < 2){
-    return;
-  }
-
-  // 画像・URLを除去
-  const cleanText = removeImageAndUrl(text);
-
-  // テキストなしなら終了
-  if([...cleanText].length <= 0){
-    return;
-  }
-
-  const uid = clientId.replace("id-","");
-
-
-  // =========================
-  // 連続文字ペナルティ判定
-  // 5文字以上の連続を全箇所取得
-  // =========================
-
-  const repeatMatches = [...cleanText.matchAll(/(.)\1{4,}/g)];
-
-
-  if(repeatMatches.length > 0){
-
-    let totalRepeatCount = 0;
-
-    repeatMatches.forEach(match => {
-      totalRepeatCount += [...match[0]].length;
-    });
-
-
-    // 連続文字数合計 × 2
-    const penalty = totalRepeatCount * 2;
-
-
-    console.log(
-      "連続文字ペナルティ:",
-      repeatMatches.map(m => m[0]),
-      "合計:",
-      totalRepeatCount,
-      "減少:",
-      penalty
-    );
-
-
-    // 表示ポイント更新
-    myProfile.points =
-      (myProfile.points || 0) - penalty;
-
-    updatePointBar(myProfile.points);
-
-
-    // DB保存
-    await supabaseClient
-      .rpc(
-        "add_user_points",
-        {
-          userid: uid,
-          amount: -penalty
         }
-      );
 
 
-    // 通常ポイント加算しない
-    return;
-  }
+        async function addPoints(text) {
+
+            // 参加者が2人未満ならポイントなし
+            if (Object.keys(members).length < 2) {
+                return;
+            }
+
+            // 画像・URLを除去
+            const cleanText = removeImageAndUrl(text);
+
+            // テキストなしなら終了
+            if ([...cleanText].length <= 0) {
+                return;
+            }
+
+            const uid = clientId.replace("id-", "");
 
 
-  // =========================
-  // 通常ポイント加算
-  // =========================
+            // =========================
+            // 連続文字ペナルティ判定
+            // 5文字以上の連続を全箇所取得
+            // =========================
 
-  const count = [...cleanText].length;
-
-
-  if(count <= 0){
-    return;
-  }
+            const repeatMatches = [...cleanText.matchAll(/(.)\1{4,}/g)];
 
 
-  myProfile.points =
-    (myProfile.points || 0) + count;
+            if (repeatMatches.length > 0) {
+
+                let totalRepeatCount = 0;
+
+                repeatMatches.forEach(match => {
+                    totalRepeatCount += [...match[0]].length;
+                });
 
 
-  updatePointBar(myProfile.points);
+                // 連続文字数合計 × 2
+                const penalty = totalRepeatCount * 2;
 
 
-  await supabaseClient
-    .rpc(
-      "add_user_points",
-      {
-        userid: uid,
-        amount: count
-      }
-    );
-}
+                console.log(
+                    "連続文字ペナルティ:",
+                    repeatMatches.map(m => m[0]),
+                    "合計:",
+                    totalRepeatCount,
+                    "減少:",
+                    penalty
+                );
 
 
-// 送信
-async function sendMsg(){
+                // 表示ポイント更新
+                myProfile.points =
+                    (myProfile.points || 0) - penalty;
 
-    const uid = clientId.replace("id-","");
-
-    const {data,error}=await supabaseClient
-        .from("users")
-        .select("ban_until")
-        .eq("id",uid)
-        .maybeSingle();
+                updatePointBar(myProfile.points);
 
 
-    console.log("BAN確認",uid,data);
+                // DB保存
+                await supabaseClient
+                    .rpc(
+                        "add_user_points",
+                        {
+                            userid: uid,
+                            amount: -penalty
+                        }
+                    );
 
 
-    if(error){
-        console.log(error);
-        return;
-    }
-
-
-    if(data?.ban_until){
-
-        const banTime = new Date(data.ban_until).getTime();
-
-        console.log(
-            "BAN時間比較",
-            banTime,
-            Date.now(),
-            banTime > Date.now()
-        );
-
-
-        if(banTime > Date.now()){
-
-            showChatNotify("BANされています");
-
-            isBanned=true;
-
-
-            const btn=document.getElementById("sendButton");
-            if(btn){
-                btn.disabled=true;
+                // 通常ポイント加算しない
+                return;
             }
 
 
-            return;   // ★ここで必ず終了
-        }
-    }
+            // =========================
+            // 通常ポイント加算
+            // =========================
 
+            const count = [...cleanText].length;
 
 
-    const e=document.getElementById("msg");
-
-    let t=e.value.trim();
-
-
-    if(!t && !imageData)return;
-
-
-    if(imageData){
-        t+="\n"+imageData;
-    }
-
-
-    const n={
-        msgId:crypto.randomUUID(),
-        id:clientId,
-        name:userName,
-        msg:t,
-        time:Date.now()
-    };
-
-
-    history[n.msgId]=n;
-
-
-    if(client){
-
-        client.publish(
-            `chanpro-chat/${userRoom}/msg`,
-            JSON.stringify(n),
-            {qos:1}
-        );
-
-    }
-    saveChatHistory(userName, clientId, t);
-    
-    await addPoints(t);
-    
-    addMsg(
-     userName,
-     t,
-     true,
-     n.time
-    );
-
-
-    e.value="";
-    imageData=null;
-
-    document.getElementById("imagePreview").innerHTML="";
-    document.getElementById("imageInput").value="";
-
-}
-// 同期要求
-
-function requestSync(){
-
-    syncFinished=false;
-
-
-    client.publish(
-        `chanpro-chat/${userRoom}/sync`,
-        JSON.stringify({
-            type:"request",
-            id:clientId
-        }),
-        {qos:1}
-    );
-
-
-    syncTimer=setTimeout(()=>{
-
-        syncFinished=true;
-
-    },3000);
-
-}
-// 同期処理
-
-function syncMessage(data){
-
- if(data.type==="request"){
-   Object.values(history).forEach(msg=>{
-     client.publish(
-       `chanpro-chat/${userRoom}/sync`,
-       JSON.stringify({
-          type:"send",
-          target:data.id,
-          data:msg
-       }),
-       {qos:1}
-     );
-   });
- }
-
-
-if(data.type==="send"){
-
-    if(data.target!==clientId)return;
-
-
-    receiveMessage(data.data);
-
-
-    // すべての同期が届くまで待つ
-    clearTimeout(syncTimer);
-
-}
-}
-// presence
-
-function announce(){
-
- setInterval(()=>{
-
-    if(!client) return;
-
-    client.publish(
-    `chanpro-chat/${userRoom}/presence`,
-    JSON.stringify({
-     id:clientId,
-     name:userName,
-     icon_url:myProfile?.icon_url || "",
-     profile:myProfile?.profile || "",
-     points:myProfile?.points || 0,
-     time:Date.now()
-    }),
-    {qos:0}
-    );
-
- },1000);
-
-}
-
-// 人数表示
-
-function showMembers(){
-
-    document.getElementById("users").innerText =
-        "参加人数: " + Object.keys(members).length;
-
-    const list = document.getElementById("memberList");
-    list.innerHTML = "";
-
-    // 自分
-    const me = document.createElement("li");
-    me.textContent = userName + " (あなた)";
-    me.style.cursor="pointer";
-    me.onclick=function(){
-        showProfile(clientId,{
-            name:userName,
-            icon_url:myProfile.icon_url,
-            profile:myProfile.profile,
-            points:myProfile.points
-        });
-    }; 
-    list.appendChild(me);
-
-    // 他の参加者
-    Object.entries(members).forEach(([id,member])=>{
-    
-        if(id===clientId)
-            return;
-    
-    
-        const li = document.createElement("li");
-    
-        li.textContent = member.name;
-    
-    
-        li.style.cursor="pointer";
-    
-    
-        li.onclick=function(){
-            showProfile(
-             id,
-             member
-             );
-    
-        };
-    
-    
-        list.appendChild(li);
-    
-    });
-    if(currentTheme && themes[currentTheme]){
-    
-        document.getElementById("memberList")
-        .style.color =
-        themes[currentTheme].text;
-    
-    }
-
-}
-
-
-
-
-
-
-function createMessageContent(text){
-
-    const urlRegex =
-    /(https?:\/\/[^\s]+|data:image\/[a-zA-Z0-9.+-]+;base64,[^\s]+)/g;
-
-
-    const parts = text.split(urlRegex);
-
-    const fragment = document.createDocumentFragment();
-
-
-    parts.forEach(part=>{
-
-
-        if(urlRegex.test(part)){
-
-
-            if(
-                part.startsWith("data:image/")
-                ||
-                /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(part)
-            ){
-
-                const img =
-                document.createElement("img");
-
-
-                img.src = part;
-
-
-                img.style.maxWidth = "250px";
-                img.style.maxHeight = "250px";
-                img.style.borderRadius = "10px";
-                img.style.marginTop = "5px";
-                img.style.display = "block";
-
-
-                fragment.appendChild(img);
-
-
-            }else{
-
-
-                const a =
-                document.createElement("a");
-
-
-                a.href = part;
-                a.target="_blank";
-                a.textContent = part;
-
-
-                fragment.appendChild(a);
-
+            if (count <= 0) {
+                return;
             }
 
 
-        }else{
+            myProfile.points =
+                (myProfile.points || 0) + count;
 
 
-            fragment.appendChild(
-                document.createTextNode(part)
+            updatePointBar(myProfile.points);
+
+
+            await supabaseClient
+                .rpc(
+                    "add_user_points",
+                    {
+                        userid: uid,
+                        amount: count
+                    }
+                );
+        }
+
+
+        // 送信
+        async function sendMsg() {
+
+            const uid = clientId.replace("id-", "");
+
+            const { data, error } = await supabaseClient
+                .from("users")
+                .select("ban_until")
+                .eq("id", uid)
+                .maybeSingle();
+
+
+            console.log("BAN確認", uid, data);
+
+
+            if (error) {
+                console.log(error);
+                return;
+            }
+
+
+            if (data?.ban_until) {
+
+                const banTime = new Date(data.ban_until).getTime();
+
+                console.log(
+                    "BAN時間比較",
+                    banTime,
+                    Date.now(),
+                    banTime > Date.now()
+                );
+
+
+                if (banTime > Date.now()) {
+
+                    showChatNotify("BANされています",null);
+
+                    isBanned = true;
+
+
+                    const btn = document.getElementById("sendButton");
+                    if (btn) {
+                        btn.disabled = true;
+                    }
+
+
+                    return;   // ★ここで必ず終了
+                }
+            }
+
+
+
+            const e = document.getElementById("msg");
+
+            let t = e.value.trim();
+
+
+            if (!t && !imageData) return;
+
+
+            if (imageData) {
+                t += "\n" + imageData;
+            }
+
+
+            const n = {
+                msgId: crypto.randomUUID(),
+                id: clientId,
+                name: userName,
+                icon_url: myProfile.icon_url,
+                profile: myProfile.profile,
+                points: myProfile.points,
+                msg: t,
+                time: Date.now()
+            };
+
+
+            history[n.msgId] = n;
+
+
+            if (client) {
+
+                client.publish(
+                    `chanpro-chat/${userRoom}/msg`,
+                    JSON.stringify(n),
+                    { qos: 1 }
+                );
+
+            }
+            saveChatHistory(userName, clientId, t);
+
+            await addPoints(t);
+
+            addMsg(
+                userName,
+                t,
+                true,
+                n.time,
+                chat,
+                clientId
             );
 
 
+            e.value = "";
+            imageData = null;
+
+            document.getElementById("imagePreview").innerHTML = "";
+            document.getElementById("imageInput").value = "";
+            if (Object.keys(members).length === 1) {
+                saveRetainHistory();
+            }
+        }
+        // 同期要求
+
+        function requestSync() {
+
+            syncFinished = false;
+
+
+            client.publish(
+                `chanpro-chat/${userRoom}/sync`,
+                JSON.stringify({
+                    type: "request",
+                    id: clientId
+                }),
+                { qos: 1 }
+            );
+
+
+            syncTimer = setTimeout(() => {
+
+                syncFinished = true;
+
+            }, 3000);
+
+        }
+        // 同期処理
+
+        function syncMessage(data) {
+
+            if (data.type === "request") {
+
+                Object.values(history)
+                    .sort((a, b) => a.time - b.time)
+                    .forEach(msg => {
+
+                        client.publish(
+                            `chanpro-chat/${userRoom}/sync`,
+                            JSON.stringify({
+                                type: "send",
+                                target: data.id,
+                                data: msg
+                            }),
+                            { qos: 1 }
+                        );
+
+                    });
+
+            }
+
+
+            if (data.type === "send") {
+
+                if (data.target !== clientId) return;
+
+                // すぐ表示しない
+                syncBuffer.push(data.data);
+
+                // タイマーを延長
+                clearTimeout(syncTimer);
+
+                syncTimer = setTimeout(() => {
+
+                    // 時刻順に並べる
+                    syncBuffer.sort((a, b) => a.time - b.time);
+
+                    // 表示
+                    syncBuffer.forEach(msg => {
+                        receiveMessage(msg);
+                    });
+
+                    // バッファを空にする
+                    syncBuffer = [];
+
+                    syncFinished = true;
+
+                }, 500);
+
+            }
+        }
+        // presence
+
+        function announce() {
+
+            setInterval(() => {
+
+                if (!client) return;
+
+                client.publish(
+                    `chanpro-chat/${userRoom}/presence`,
+                    JSON.stringify({
+                        id: clientId,
+                        name: userName,
+                        icon_url: myProfile?.icon_url || "",
+                        profile: myProfile?.profile || "",
+                        points: myProfile?.points || 0,
+                        time: Date.now()
+                    }),
+                    { qos: 1 }
+                );
+
+            }, 1000);
+
+        }
+
+        // 人数表示
+
+        function showMembers() {
+
+            const users=document.getElementById("users");
+            
+            if(membersLoading){
+                users.innerText="読み込み中…";
+            }else{
+                users.innerText="参加人数: "+Object.keys(members).length;
+            }
+
+            const list = document.getElementById("memberList");
+            list.innerHTML = "";
+
+            // 自分
+            const me = document.createElement("li");
+            me.textContent = userName + " (あなた)";
+            me.style.cursor = "pointer";
+            me.onclick = function () {
+                showProfile(clientId, {
+                    name: userName,
+                    icon_url: myProfile.icon_url,
+                    profile: myProfile.profile,
+                    points: myProfile.points
+                });
+            };
+            list.appendChild(me);
+
+            // 他の参加者
+            Object.entries(members).forEach(([id, member]) => {
+
+                if (id === clientId)
+                    return;
+
+
+                const li = document.createElement("li");
+
+                li.textContent = member.name;
+
+
+                li.style.cursor = "pointer";
+
+
+                li.onclick = function () {
+                    showProfile(
+                        id,
+                        member
+                    );
+
+                };
+
+
+                list.appendChild(li);
+
+            });
+            if (currentTheme && themes[currentTheme]) {
+
+                document.getElementById("memberList")
+                    .style.color =
+                    themes[currentTheme].text;
+
+            }
+
         }
 
 
-    });
 
 
-    return fragment;
 
-}
-async function getUserIcon(name){
+
+        function createMessageContent(text) {
+
+            const urlRegex =
+                /(https?:\/\/[^\s]+|data:image\/[a-zA-Z0-9.+-]+;base64,[^\s]+)/g;
+
+
+            const parts = text.split(urlRegex);
+
+            const fragment = document.createDocumentFragment();
+
+
+            parts.forEach(part => {
+
+
+                if (urlRegex.test(part)) {
+
+
+                    if (
+                        part.startsWith("data:image/")
+                        ||
+                        /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(part)
+                    ) {
+
+                        const img =
+                            document.createElement("img");
+
+
+                        img.src = part;
+
+
+                        img.style.maxWidth = "250px";
+                        img.style.maxHeight = "250px";
+                        img.style.borderRadius = "10px";
+                        img.style.marginTop = "5px";
+                        img.style.display = "block";
+
+
+                        fragment.appendChild(img);
+
+
+                    } else {
+
+
+                        const a =
+                            document.createElement("a");
+
+
+                        a.href = part;
+                        a.target = "_blank";
+                        a.textContent = part;
+
+
+                        fragment.appendChild(a);
+
+                    }
+
+
+                } else {
+
+
+                    fragment.appendChild(
+                        document.createTextNode(part)
+                    );
+
+
+                }
+
+
+            });
+
+
+            return fragment;
+
+        }
+async function getUserIcon(name, senderId=null){
+    const PLACEHOLDER = "https://placehold.jp/40x40.png";
+
+    // キャッシュ
+    if(iconCache[name]){
+        return iconCache[name];
+    }
+
     // 自分
-    if(name===userName && myProfile.icon_url){
+    if(name === userName && myProfile.icon_url){
+        iconCache[name] = myProfile.icon_url;
         return myProfile.icon_url;
     }
 
     // 参加中メンバー
     for(const member of Object.values(members)){
-        if(member.name===name && member.icon_url){
+        if(member.name === name && member.icon_url){
+            iconCache[name] = member.icon_url;
             return member.icon_url;
         }
     }
 
-    // Supabaseから検索
+    // Supabase検索
     const {data,error}=await supabaseClient
         .from("users")
         .select("icon_url")
         .eq("username",name)
         .maybeSingle();
 
-    if(!error && data && data.icon_url){
+    if(!error && data?.icon_url){
+        iconCache[name]=data.icon_url;
         return data.icon_url;
     }
 
-    return "https://placehold.jp/40x40.png";
+    iconCache[name]=PLACEHOLDER;
+    return PLACEHOLDER;
 }
 
-// 表示
+        // 表示
 
-async function addMsg(name, msg, isMe = false, time = Date.now()) {
+async function addMsg(name,msg,isMe=false,time=Date.now(),container=chat,senderId=null){
 
-    const chat = document.getElementById("chat");
+            messageQueue = messageQueue.then(async () => {
 
-    const div = document.createElement("div");
 
-    const t = new Date(time);
+                const chat = document.getElementById("chat");
 
-    const dateStr =
-        `${t.getFullYear()}/` +
-        `${String(t.getMonth() + 1).padStart(2, "0")}/` +
-        `${String(t.getDate()).padStart(2, "0")}`;
+                const div = document.createElement("div");
 
-    const tm =
-        `${String(t.getHours()).padStart(2, "0")}:` +
-        `${String(t.getMinutes()).padStart(2, "0")}`;
+                const t = new Date(time);
 
-    // 日付が変わったら日付区切りを表示
-    if (lastMessageDate !== dateStr) {
+                const dateStr =
+                    `${t.getFullYear()}/` +
+                    `${String(t.getMonth() + 1).padStart(2, "0")}/` +
+                    `${String(t.getDate()).padStart(2, "0")}`;
 
-        lastMessageDate = dateStr;
+                const tm =
+                    `${String(t.getHours()).padStart(2, "0")}:` +
+                    `${String(t.getMinutes()).padStart(2, "0")}`;
 
-        const dateDiv = document.createElement("div");
-        dateDiv.className = "date-divider";
+                // 日付が変わったら日付区切りを表示
+                if (lastMessageDate !== dateStr) {
 
-        const span = document.createElement("span");
-        span.textContent = dateStr;
+                    lastMessageDate = dateStr;
 
-        dateDiv.appendChild(span);
+                    const dateDiv = document.createElement("div");
+                    dateDiv.className = "date-divider";
 
-        chat.appendChild(dateDiv);
-    }
+                    const span = document.createElement("span");
+                    span.textContent = dateStr;
 
-    if (name === "システム") {
+                    dateDiv.appendChild(span);
 
-        div.className = "system";
-        div.textContent = `${msg} ${tm}`;
+                    chat.appendChild(dateDiv);
+                }
 
-    } else {
+                if (name === "システム") {
 
-        const wrap = document.createElement("div");
-        wrap.className = "message-wrap " + (isMe ? "me" : "");
+                    div.className = "system";
+                    div.textContent = `${msg} ${tm}`;
 
-        const box = document.createElement("div");
-        box.className = "msg " + (isMe ? "me" : "");
+                } else {
 
-        const theme = themes[currentTheme];
+                    const wrap = document.createElement("div");
+                    wrap.className = "message-wrap " + (isMe ? "me" : "");
 
-        if (theme) {
-            box.style.background = isMe ? theme.me : theme.other;
-            box.style.color = theme.text;
+                    const box = document.createElement("div");
+                    box.className = "msg " + (isMe ? "me" : "");
+
+                    const theme = themes[currentTheme];
+
+                    if (theme) {
+                        box.style.background = isMe ? theme.me : theme.other;
+                        box.style.color = theme.text;
+                    }
+
+                    // アイコン
+                    const icon=document.createElement("img");
+                    icon.dataset.userid=senderId;
+                    icon.src="https://placehold.jp/40x40.png";
+                    
+                    getUserIcon(name,senderId).then(url=>{
+                        icon.src=url;
+                    });
+                    icon.style.width = "30px";
+                    icon.style.height = "30px";
+                    icon.style.borderRadius = "50%";
+                    icon.style.objectFit = "cover";
+                    icon.style.verticalAlign = "middle";
+                    icon.style.marginRight = "5px";
+
+                    icon.onerror = function () {
+                        this.src = "https://placehold.jp/40x40.png";
+                    };
+
+                    box.appendChild(icon);
+                    box.appendChild(document.createTextNode(name + "："));
+                    box.appendChild(createMessageContent(msg));
+
+                    const timeDiv = document.createElement("div");
+                    timeDiv.className = "time " + (isMe ? "me" : "other");
+                    timeDiv.textContent = tm;
+
+                    wrap.appendChild(box);
+                    wrap.appendChild(timeDiv);
+
+                    div.appendChild(wrap);
+                }
+                chat.appendChild(div);
+
+
+                if (container === chat) {
+                    chat.scrollTop = chat.scrollHeight;
+                }
+
+            });
+            return messageQueue;
         }
 
-        // アイコン
-        const icon = document.createElement("img");
 
-        const iconUrl = await getUserIcon(name);
 
-        icon.src = iconUrl || "https://placehold.jp/40x40.png";
-        icon.style.width = "30px";
-        icon.style.height = "30px";
-        icon.style.borderRadius = "50%";
-        icon.style.objectFit = "cover";
-        icon.style.verticalAlign = "middle";
-        icon.style.marginRight = "5px";
+        // 通報対象保持
+        let reportTarget = null;
 
-        icon.onerror = function () {
-            this.src = "https://placehold.jp/40x40.png";
-        };
 
-        box.appendChild(icon);
-        box.appendChild(document.createTextNode(name + "："));
-        box.appendChild(createMessageContent(msg));
 
-        const timeDiv = document.createElement("div");
-        timeDiv.className = "time " + (isMe ? "me" : "other");
-        timeDiv.textContent = tm;
+        function reportUser(targetId, name) {
 
-        wrap.appendChild(box);
-        wrap.appendChild(timeDiv);
 
-        div.appendChild(wrap);
-    }
+            const key =
+                clientId +
+                "_" +
+                targetId;
 
-    chat.appendChild(div);
 
-    chat.scrollTop = chat.scrollHeight;
-}
 
+            const message =
+                document.getElementById("confirmMessage");
 
 
-// 通報対象保持
-let reportTarget = null;
+            const okButton =
+                document.getElementById("reportOK");
 
 
 
-function reportUser(targetId,name){
+            reportTarget = {
 
+                id: targetId,
 
-    const key =
-    clientId +
-    "_" +
-    targetId;
+                name: name
 
+            };
 
 
-    const message =
-    document.getElementById("confirmMessage");
 
+            if (
+                reportHistory[key]
+                &&
+                Date.now() - reportHistory[key]
+                <
+                5 * 60 * 1000
+            ) {
 
-    const okButton =
-    document.getElementById("reportOK");
 
+                message.innerText =
+                    name + "さんはすでに通報済みです";
 
 
-    reportTarget={
+                okButton.disabled = true;
 
-        id:targetId,
 
-        name:name
+            } else {
 
-    };
 
+                message.innerText =
+                    name + "さんを通報しますか？";
 
 
-    if(
-        reportHistory[key]
-        &&
-        Date.now() - reportHistory[key]
-        <
-        5 * 60 * 1000
-    ){
+                okButton.disabled = false;
 
 
-        message.innerText =
-        name + "さんはすでに通報済みです";
+            }
 
 
-        okButton.disabled=true;
 
+            document.getElementById("confirmModal")
+                .style.display = "flex";
 
-    }else{
-
-
-        message.innerText =
-        name + "さんを通報しますか？";
-
-
-        okButton.disabled=false;
-
-
-    }
-
-
-
-    document.getElementById("confirmModal")
-    .style.display="flex";
-
-
-}
-
-
-
-
-
-function confirmReport(result){
-
-    document.getElementById("confirmModal")
-    .style.display="none";
-
-
-    if(!result){
-
-        console.log(
-            "通報キャンセル"
-        );
-
-        reportTarget=null;
-
-        return;
-
-    }
-
-
-    if(!reportTarget){
-
-        console.log(
-            "通報対象なし"
-        );
-
-        return;
-
-    }
-
-
-
-    const data={
-
-        reporter:clientId,
-
-        // 修正：ここをclientIdに変更
-        deviceId:clientId,
-
-        target:reportTarget.id,
-
-        name:reportTarget.name,
-
-        time:Date.now()
-
-    };
-
-
-
-    const key =
-    clientId +
-    "_" +
-    reportTarget.id;
-
-
-
-    client.publish(
-
-        `chanpro-chat/${userRoom}/report`,
-
-        JSON.stringify(data),
-
-        {
-            qos:1
-        }
-
-    );
-
-
-
-    reportHistory[key]=Date.now();
-
-
-
-    console.log(
-        "通報送信:",
-        data
-    );
-
-
-
-    reportTarget=null;
-
-}
-async function banUser(e,t){
-
-    console.log("BAN開始:",e,t);
-
-
-    const userId=e.replace("id-","");
-
-
-    const {data,error}=await supabaseClient
-        .from("users")
-        .select("id,ban_count")
-        .eq("id",userId)
-        .single();
-
-
-    if(error || !data){
-
-        console.log("BAN対象なし",error);
-        return;
-    }
-
-
-    const count=(data.ban_count || 0)+1;
-
-
-    // 1回目5分、2回目10分、3回目15分
-    const minutes=5*count;
-
-
-    const banUntil=new Date(
-        Date.now()+minutes*60*1000
-    );
-    console.log(
-        "作成したBAN期限",
-        banUntil.toString(),
-        banUntil.toISOString()
-    );    
-
-    console.log(
-        "BAN期限:",
-        banUntil.toString()
-    );
-
-
-    const {error:updateError}=await supabaseClient
-    .from("users")
-    .update({
-     ban_count:count,
-     ban_until:banUntil.toISOString()
-    })
-    .eq("id",userId);
-    
-    
-    // ポイント -100
-    await supabaseClient
-    .rpc(
-     "add_user_points",
-     {
-      userid:userId,
-      amount:-100
-     }
-    );
-
-
-    if(updateError){
-
-        console.log(updateError);
-        return;
-    }
-
-
-    const banData={
-        id:e,
-        name:t,
-        until:banUntil.toISOString(),
-        time:Date.now()
-    };
-
-
-    client.publish(
-        `chanpro-chat/${userRoom}/ban`,
-        JSON.stringify(banData),
-        {qos:1}
-    );
-
-
-    bannedUsers[e]=banData;
-
-
-    addMsg(
-        "システム",
-        `${t}さんがBANされました (${minutes}分)`,
-        false,
-        Date.now()
-    );
-
-
-}
-function isDuplicateReport(targetId){
-
-    const key =
-    clientId +
-    "_" +
-    targetId;
-
-
-    return reportHistory[key] === true;
-
-}
-function toggleThemeMenu(){
-
-    const menu =
-    document.getElementById("themeMenu");
-
-
-    if(menu.style.display==="none"){
-
-        menu.style.display="block";
-
-    }else{
-
-        menu.style.display="none";
-
-    }
-
-}
-function selectImage(){
-
-    document.getElementById("imageInput").click();
-
-}
-function loadImage(event){
-
-    const file = event.target.files[0];
-
-    if(!file)
-        return;
-
-
-    const img = new Image();
-
-    const reader = new FileReader();
-
-
-    reader.onload=function(e){
-
-        img.onload=function(){
-
-            compressImage(img);
-
-        };
-
-        img.src=e.target.result;
-
-    };
-
-
-    reader.readAsDataURL(file);
-
-}
-function compressImage(img){
-
-    const canvas =
-    document.createElement("canvas");
-
-
-    let width = img.width;
-    let height = img.height;
-
-
-    // 最大サイズ
-    const maxSize = 1200;
-
-
-    if(width > maxSize || height > maxSize){
-
-        if(width > height){
-
-            height =
-            height * maxSize / width;
-
-            width=maxSize;
-
-        }else{
-
-            width =
-            width * maxSize / height;
-
-            height=maxSize;
-
-        }
-
-    }
-
-
-    canvas.width=width;
-    canvas.height=height;
-
-
-    const ctx =
-    canvas.getContext("2d");
-
-
-    ctx.drawImage(
-        img,
-        0,
-        0,
-        width,
-        height
-    );
-
-
-
-    let quality = 0.9;
-
-    let result;
-
-
-
-    while(true){
-
-
-        result =
-        canvas.toDataURL(
-            "image/jpeg",
-            quality
-        );
-
-
-        const size =
-        result.length * 0.75;
-
-
-
-        console.log(
-            "圧縮:",
-            Math.round(size/1024),
-            "KB",
-            "品質:",
-            quality
-        );
-
-
-
-        // 200KB以下なら終了
-        if(size <= 200 * 1024){
-
-            break;
 
         }
 
 
-        quality -= 0.05;
 
 
 
-        // 品質最低
-        if(quality <= 0.1){
+        function confirmReport(result) {
 
-            break;
+            document.getElementById("confirmModal")
+                .style.display = "none";
 
-        }
 
-    }
+            if (!result) {
 
+                console.log(
+                    "通報キャンセル"
+                );
 
+                reportTarget = null;
 
-    const finalSize =
-    result.length * 0.75;
+                return;
 
+            }
 
 
-    // それでも500KB超ならさらに縮小
-    if(finalSize > 500 * 1024){
+            if (!reportTarget) {
 
-        canvas.width *= 0.7;
-        canvas.height *= 0.7;
+                console.log(
+                    "通報対象なし"
+                );
 
+                return;
 
-        const ctx2 =
-        canvas.getContext("2d");
+            }
 
 
-        ctx2.drawImage(
-            img,
-            0,
-            0,
-            canvas.width,
-            canvas.height
-        );
 
+            const data = {
 
-        result =
-        canvas.toDataURL(
-            "image/jpeg",
-            0.1
-        );
+                reporter: clientId,
 
-    }
+                // 修正：ここをclientIdに変更
+                deviceId: clientId,
 
+                target: reportTarget.id,
 
+                name: reportTarget.name,
 
-    const size =
-    result.length * 0.75;
+                time: Date.now()
 
+            };
 
 
-    if(size > 500 * 1024){
 
-        showChatNotify(
-            "画像を500KB以下にできませんでした"
-        );
+            const key =
+                clientId +
+                "_" +
+                reportTarget.id;
 
-        imageData=null;
-        return;
 
-    }
 
+            client.publish(
 
+                `chanpro-chat/${userRoom}/report`,
 
-    imageData=result;
-    
-    showImagePreview(result);
+                JSON.stringify(data),
 
-    console.log(
-        "送信サイズ:",
-        Math.round(size/1024),
-        "KB"
-    );
+                {
+                    qos: 1
+                }
 
-}
-
-function showImagePreview(src){
-
-    const preview =
-    document.getElementById("imagePreview");
-
-
-    preview.innerHTML="";
-
-
-    const box =
-    document.createElement("div");
-
-    box.style.display="flex";
-    box.style.alignItems="center";
-    box.style.gap="5px";
-    box.style.marginTop="8px";
-
-
-
-    const img =
-    document.createElement("img");
-
-
-    img.src=src;
-
-
-    img.style.maxWidth="200px";
-    img.style.maxHeight="200px";
-    img.style.borderRadius="10px";
-
-
-
-    const cancel =
-    document.createElement("button");
-
-
-    cancel.textContent="×";
-
-
-    cancel.style.background="#ff5555";
-    cancel.style.color="white";
-    cancel.style.border="none";
-    cancel.style.borderRadius="50%";
-    cancel.style.width="30px";
-    cancel.style.height="30px";
-    cancel.style.cursor="pointer";
-
-
-    cancel.onclick=function(){
-
-        imageData=null;
-
-        preview.innerHTML="";
-
-        document.getElementById("imageInput")
-        .value="";
-
-    };
-
-
-
-    box.appendChild(img);
-
-    box.appendChild(cancel);
-
-
-    preview.appendChild(box);
-
-}
-
-async function hashPassword(password){
-
-    const data =
-    new TextEncoder()
-    .encode(password);
-
-
-    const hash =
-    await crypto.subtle.digest(
-        "SHA-256",
-        data
-    );
-
-
-    return Array.from(
-        new Uint8Array(hash)
-    )
-    .map(b=>b.toString(16).padStart(2,"0"))
-    .join("");
-
-}
-
-async function loginUser(){
-
-
-    const username =
-    document.getElementById("setName")
-    .value.trim();
-
-
-    const password =
-    document.getElementById("setPassword")
-    .value;
-
-
-
-    if(!username || !password){
-
-        showChatNotify("入力してください");
-
-        return null;
-
-    }
-
-
-
-    const hash =
-    await hashPassword(password);
-
-
-
-    const {data,error}=
-
-    await supabaseClient
-    .from("users")
-    .select(
-    "id,ban_until,ban_count,icon_url,profile,points"
-    )
-    .eq(
-        "username",
-        username
-    )
-    .eq(
-        "password_hash",
-        hash
-    )
-    .maybeSingle();
-
-
-
-    if(error){
-
-        console.error(error);
-
-        showChatNotify(error.message);
-
-        return null;
-
-    }
-
-
-
-    if(!data){
-
-        showLoginMessage(
-            "ユーザー名またはパスワードが違います"
-        );
-
-        return null;
-
-    }
-
-
-
-    // BAN確認追加
-
-    if(
-        data.ban_until
-        &&
-        new Date(data.ban_until) > new Date()
-    ){
-
-
-        const remain = Math.ceil(
-
-            (
-                new Date(data.ban_until)
-                -
-                new Date()
-
-            )
-            /
-            60000
-
-        );
-
-
-        showLoginMessage(
-
-            `BAN中です。残り${remain}分`
-
-        );
-
-
-        return null;
-
-    }
-
-
-
-    showLoginMessage(
-
-        "ログイン成功",
-
-        "#22aa22"
-
-    );
-
-
-    return data.id;
-
-}
-
-async function createUser(){
-
-
-    const username =
-    document.getElementById("setName")
-    .value.trim();
-
-
-    const password =
-    document.getElementById("setPassword")
-    .value;
-
-
-
-    if(!username || !password){
-
-        showChatNotify("入力してください");
-        return;
-
-    }
-
-
-
-    const hash =
-    await hashPassword(password);
-
-
-
-    const {data,error}=
-
-    await supabaseClient
-    .from("users")
-    .insert({
-
-        username:username,
-
-        password_hash:hash,
-        ban_count:0,
-        ban_until:null
-
-
-    })
-    .select("id")
-    .single();
-
-
-
-    if(error){
-    
-    
-        if(error.code==="23505"){
-    
-            showLoginMessage(
-                "このユーザー名はすでに使われています"
             );
-    
-    
-        }else{
-    
-            showLoginMessage(
-                "作成失敗: "
-                + error.message
+
+
+
+            reportHistory[key] = Date.now();
+
+
+
+            console.log(
+                "通報送信:",
+                data
             );
-    
+
+
+
+            reportTarget = null;
+
         }
-    
-    
-        return;
-    
-    }
+        async function banUser(e, t) {
+
+            console.log("BAN開始:", e, t);
 
 
-
-    showChatNotify(
-        "ユーザー作成完了"
-    );
-    startChat();
-
-}
-function showLoginMessage(text,color="#ff3333"){
-
-    const box =
-    document.getElementById("loginMessage");
+            const userId = e.replace("id-", "");
 
 
-    box.innerText=text;
-
-    box.style.color=color;
-
-}
-async function checkBanStatus(){
-
-    if(!clientId) return;
-
-    const userId = clientId.replace("id-","");
-
-    const {data,error}=await supabaseClient
-        .from("users")
-        .select("ban_until")
-        .eq("id",userId)
-        .single();
-
-    if(error || !data) return;
+            const { data, error } = await supabaseClient
+                .from("users")
+                .select("id,ban_count")
+                .eq("id", userId)
+                .single();
 
 
-    if(data.ban_until){
+            if (error || !data) {
 
-        const banTime=new Date(data.ban_until);
-        const now=new Date();
-
-        if(banTime > now){
-
-            if(!isBanned){
-
-                isBanned=true;
-
-                const btn=document.getElementById("sendButton");
-                if(btn) btn.disabled=true;
+                console.log("BAN対象なし", error);
+                return;
+            }
 
 
-                addMsg(
-                    "システム",
-                    "BANされています。チャットを利用できません",
-                    false,
-                    Date.now()
+            const count = (data.ban_count || 0) + 1;
+
+
+            // 1回目5分、2回目10分、3回目15分
+            const minutes = 5 * count;
+
+
+            const banUntil = new Date(
+                Date.now() + minutes * 60 * 1000
+            );
+            console.log(
+                "作成したBAN期限",
+                banUntil.toString(),
+                banUntil.toISOString()
+            );
+
+            console.log(
+                "BAN期限:",
+                banUntil.toString()
+            );
+
+
+            const { error: updateError } = await supabaseClient
+                .from("users")
+                .update({
+                    ban_count: count,
+                    ban_until: banUntil.toISOString()
+                })
+                .eq("id", userId);
+
+
+            // ポイント -100
+            await supabaseClient
+                .rpc(
+                    "add_user_points",
+                    {
+                        userid: userId,
+                        amount: -100
+                    }
                 );
 
 
-                if(client){
-                    client.end();
-                    client=null;
+            if (updateError) {
+
+                console.log(updateError);
+                return;
+            }
+
+
+            const banData = {
+                id: e,
+                name: t,
+                until: banUntil.toISOString(),
+                time: Date.now()
+            };
+
+
+            client.publish(
+                `chanpro-chat/${userRoom}/ban`,
+                JSON.stringify(banData),
+                { qos: 1 }
+            );
+
+
+            bannedUsers[e] = banData;
+
+
+            addMsg(
+                "システム",
+                `${t}さんがBANされました (${minutes}分)`,
+                false,
+                Date.now()
+            );
+
+
+        }
+        function isDuplicateReport(targetId) {
+
+            const key =
+                clientId +
+                "_" +
+                targetId;
+
+
+            return reportHistory[key] === true;
+
+        }
+        function toggleThemeMenu() {
+            const menu = document.getElementById("themeMenu");
+
+            if (!menu) return;
+
+            if (getComputedStyle(menu).display === "none") {
+                menu.style.display = "block";
+            } else {
+                menu.style.display = "none";
+            }
+        }
+        function selectImage() {
+
+            document.getElementById("imageInput").click();
+
+        }
+        function loadImage(event) {
+
+            const file = event.target.files[0];
+
+            if (!file)
+                return;
+
+
+            const img = new Image();
+
+            const reader = new FileReader();
+
+
+            reader.onload = function (e) {
+
+                img.onload = function () {
+
+                    compressImage(img);
+
+                };
+
+                img.src = e.target.result;
+
+            };
+
+
+            reader.readAsDataURL(file);
+
+        }
+        function compressImage(img) {
+
+            const canvas =
+                document.createElement("canvas");
+
+
+            let width = img.width;
+            let height = img.height;
+
+
+            // 最大サイズ
+            const maxSize = 1200;
+
+
+            if (width > maxSize || height > maxSize) {
+
+                if (width > height) {
+
+                    height =
+                        height * maxSize / width;
+
+                    width = maxSize;
+
+                } else {
+
+                    width =
+                        width * maxSize / height;
+
+                    height = maxSize;
+
                 }
 
             }
 
+
+            canvas.width = width;
+            canvas.height = height;
+
+
+            const ctx =
+                canvas.getContext("2d");
+
+
+            ctx.drawImage(
+                img,
+                0,
+                0,
+                width,
+                height
+            );
+
+
+
+            let quality = 0.9;
+
+            let result;
+
+
+
+            while (true) {
+
+
+                result =
+                    canvas.toDataURL(
+                        "image/jpeg",
+                        quality
+                    );
+
+
+                const size =
+                    result.length * 0.75;
+
+
+
+                console.log(
+                    "圧縮:",
+                    Math.round(size / 1024),
+                    "KB",
+                    "品質:",
+                    quality
+                );
+
+
+
+                // 200KB以下なら終了
+                if (size <= 200 * 1024) {
+
+                    break;
+
+                }
+
+
+                quality -= 0.05;
+
+
+
+                // 品質最低
+                if (quality <= 0.1) {
+
+                    break;
+
+                }
+
+            }
+
+
+
+            const finalSize =
+                result.length * 0.75;
+
+
+
+            // それでも500KB超ならさらに縮小
+            if (finalSize > 500 * 1024) {
+
+                canvas.width *= 0.7;
+                canvas.height *= 0.7;
+
+
+                const ctx2 =
+                    canvas.getContext("2d");
+
+
+                ctx2.drawImage(
+                    img,
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
+
+
+                result =
+                    canvas.toDataURL(
+                        "image/jpeg",
+                        0.1
+                    );
+
+            }
+
+
+
+            const size =
+                result.length * 0.75;
+
+
+
+            if (size > 500 * 1024) {
+
+                showChatNotify(
+                    "画像を500KB以下にできませんでした",null
+                );
+
+                imageData = null;
+                return;
+
+            }
+
+
+
+            imageData = result;
+
+            showImagePreview(result);
+
+            console.log(
+                "送信サイズ:",
+                Math.round(size / 1024),
+                "KB"
+            );
+
         }
-    }
-}
-function startBanWatcher(){
 
-    setInterval(()=>{
+        function showImagePreview(src) {
 
-        checkBanStatus();
+            const preview =
+                document.getElementById("imagePreview");
 
-    },60000);
 
-}
-async function openAccountMenu(){
+            preview.innerHTML = "";
 
- const menu=document.getElementById("accountMenu");
 
- if(menu.style.display==="none"){
+            const box =
+                document.createElement("div");
 
-    const uid=clientId.replace("id-","");
+            box.style.display = "flex";
+            box.style.alignItems = "center";
+            box.style.gap = "5px";
+            box.style.marginTop = "8px";
 
-    const {data,error}=await supabaseClient
-    .from("users")
-    .select("icon_url,profile")
-    .eq("id",uid)
-    .single();
 
 
-    if(data){
+            const img =
+                document.createElement("img");
 
-        document.getElementById("newIcon").value =
-            data.icon_url || "";
 
-        document.getElementById("newProfile").value =
-            data.profile || "";
+            img.src = src;
 
-        updateIconDemo(data.icon_url);
 
-    }
+            img.style.maxWidth = "200px";
+            img.style.maxHeight = "200px";
+            img.style.borderRadius = "10px";
 
-    menu.style.display="block";
 
- }else{
 
-    menu.style.display="none";
+            const cancel =
+                document.createElement("button");
 
- }
 
-}
+            cancel.textContent = "×";
 
 
+            cancel.style.background = "#ff5555";
+            cancel.style.color = "white";
+            cancel.style.border = "none";
+            cancel.style.borderRadius = "50%";
+            cancel.style.width = "30px";
+            cancel.style.height = "30px";
+            cancel.style.cursor = "pointer";
 
 
-async function changeUsername(){
+            cancel.onclick = function () {
 
-const newName=
-document.getElementById("newUsername")
-.value.trim();
+                imageData = null;
 
+                preview.innerHTML = "";
 
-if(!newName){
-showChatNotify("入力してください");
-return;
-}
+                document.getElementById("imageInput")
+                    .value = "";
 
+            };
 
-const uid=clientId.replace("id-","");
 
 
-const {error}=await supabaseClient
-.from("users")
-.update({
- username:newName
-})
-.eq("id",uid);
+            box.appendChild(img);
 
+            box.appendChild(cancel);
 
-if(error){
 
-showChatNotify(error.message);
-return;
+            preview.appendChild(box);
 
-}
+        }
 
+        async function hashPassword(password) {
 
-userName=newName;
+            const data =
+                new TextEncoder()
+                    .encode(password);
 
-document.getElementById("profile")
-.innerText=
-`${userName} / ${userRoom}`;
-showChatNotify("ユーザー名を変更しました");
 
-}
-async function changePassword(){
+            const hash =
+                await crypto.subtle.digest(
+                    "SHA-256",
+                    data
+                );
 
-const password=
-document.getElementById("newPassword")
-.value;
 
+            return Array.from(
+                new Uint8Array(hash)
+            )
+                .map(b => b.toString(16).padStart(2, "0"))
+                .join("");
 
-if(!password){
-showChatNotify("入力してください");
-return;
-}
+        }
 
+        async function loginUser() {
 
-const hash=
-await hashPassword(password);
 
+            const username =
+                document.getElementById("setName")
+                    .value.trim();
 
-const uid=
-clientId.replace("id-","");
 
+            const password =
+                document.getElementById("setPassword")
+                    .value;
 
-const {error}=await supabaseClient
-.from("users")
-.update({
 
-password_hash:hash
 
-})
-.eq("id",uid);
+            if (!username || !password) {
 
+                showChatNotify("入力してください",null);
 
-if(error){
+                return null;
 
-showChatNotify(error.message);
-return;
+            }
 
-}
 
 
-showChatNotify("パスワード変更しました");
+            const hash =
+                await hashPassword(password);
 
-document.getElementById("newPassword")
-.value="";
 
-}
-async function deleteAccount(){
 
-const ok=
-confirm(
-"本当にアカウントを削除しますか？"
-);
+            const { data, error } =
 
+                await supabaseClient
+                    .from("users")
+                    .select(
+                        "id,ban_until,ban_count,icon_url,profile,points"
+                    )
+                    .eq(
+                        "username",
+                        username
+                    )
+                    .eq(
+                        "password_hash",
+                        hash
+                    )
+                    .maybeSingle();
 
-if(!ok)return;
 
 
-const uid=
-clientId.replace("id-","");
+            if (error) {
 
+                console.error(error);
 
-const {error}=await supabaseClient
-.from("users")
-.delete()
-.eq("id",uid);
+                showChatNotify(error.message,null);
 
+                return null;
 
-if(error){
+            }
 
-showChatNotify(error.message);
-return;
 
-}
 
+            if (!data) {
 
-showChatNotify("アカウントを削除しました");
+                showLoginMessage(
+                    "ユーザー名またはパスワードが違います"
+                );
 
+                return null;
 
-if(client){
+            }
 
-client.end();
 
-}
 
+            // BAN確認追加
 
-location.reload();
+            if (
+                data.ban_until
+                &&
+                new Date(data.ban_until) > new Date()
+            ) {
 
-}
-let deleteRequest=false;
 
+                const remain = Math.ceil(
 
-function openDeleteModal(){
-showChatNotify("削除ボタンが押されました");
-document.getElementById("deleteMessage")
-.innerText =
-"本当にアカウントを削除しますか？\nこの操作は元に戻せません";
+                    (
+                        new Date(data.ban_until)
+                        -
+                        new Date()
 
+                    )
+                    /
+                    60000
 
-document.getElementById("deleteModal")
-.style.display="flex";
+                );
 
-}
 
+                showLoginMessage(
 
+                    `BAN中です。残り${remain}分`
 
-async function confirmDelete(result){
+                );
 
-document.getElementById("deleteModal")
-.style.display="none";
 
+                return null;
 
-if(!result){
-console.log("削除キャンセル");
-return;
-}
+            }
 
 
-const uid=
-clientId.replace("id-","");
 
+            showLoginMessage(
 
-const {error}=await supabaseClient
-.from("users")
-.delete()
-.eq("id",uid);
+                "ログイン成功",
 
+                "#22aa22"
 
-if(error){
+            );
 
-showChatNotify(error.message);
-return;
 
-}
+            return data.id;
 
+        }
 
-showChatNotify("アカウントを削除しました");
+        async function createUser() {
 
 
-if(client){
+            const username =
+                document.getElementById("setName")
+                    .value.trim();
 
-client.end();
 
-}
+            const password =
+                document.getElementById("setPassword")
+                    .value;
 
 
-location.reload();
 
-}
-async function saveProfile(){
-const icon=document.getElementById("newIcon").value.trim();
+            if (!username || !password) {
 
-if(icon && !isValidURL(icon)){
-    showChatNotify("正しいアイコンURLを入力してください");
-    return;
-}
- const profile=document.getElementById("newProfile").value.trim();
+                showChatNotify("入力してください",null);
+                return;
 
- const uid=clientId.replace("id-","");
+            }
 
- const {error}=await supabaseClient
- .from("users")
- .update({
-   icon_url: icon,
-   profile: profile
- })
- .eq("id",uid);
 
- if(error){
-   showChatNotify(error.message);
-   return;
- }
 
- // ★追加
- myProfile.icon_url = icon;
- myProfile.profile = profile;
+            const hash =
+                await hashPassword(password);
 
- // ★追加（すぐ他人へ反映）
- client.publish(
-   `chanpro-chat/${userRoom}/presence`,
-   JSON.stringify({
-     id:clientId,
-     name:userName,
-     icon_url:icon,
-     profile:profile,
-     time:Date.now()
-   }),
-   {qos:0}
- );
 
- showChatNotify("プロフィールを更新しました");
-}
-let selectedProfile=null;
 
+            const { data, error } =
 
-function showProfile(id,member){
-document.getElementById("givePointAmount").value="";
-selectedProfile={
- id:id,
- name:member.name
-};
+                await supabaseClient
+                    .from("users")
+                    .insert({
 
+                        username: username,
 
-document.getElementById("viewName")
-.innerText=member.name;
+                        password_hash: hash,
+                        ban_count: 0,
+                        ban_until: null
 
 
-const totalPoint = member.points || 0;
+                    })
+                    .select("id")
+                    .single();
 
-const lv = Math.floor(totalPoint / 100) + 1;
-const point = totalPoint % 100;
 
 
-const profileText = (member.profile || "自己紹介なし")
-    .replace(/\n/g, "<br>");
+            if (error) {
 
-document.getElementById("viewProfile").innerHTML =
-`
+
+                if (error.code === "23505") {
+
+                    showLoginMessage(
+                        "このユーザー名はすでに使われています"
+                    );
+
+
+                } else {
+
+                    showLoginMessage(
+                        "作成失敗: "
+                        + error.message
+                    );
+
+                }
+
+
+                return;
+
+            }
+
+
+
+            showChatNotify(
+                "ユーザー作成完了",null
+            );
+            startChat();
+
+        }
+        function showLoginMessage(text, color = "#ff3333") {
+
+            const box =
+                document.getElementById("loginMessage");
+
+
+            box.innerText = text;
+
+            box.style.color = color;
+
+        }
+        async function checkBanStatus() {
+
+            if (!clientId) return;
+
+            const userId = clientId.replace("id-", "");
+
+            const { data, error } = await supabaseClient
+                .from("users")
+                .select("ban_until")
+                .eq("id", userId)
+                .single();
+
+            if (error || !data) return;
+
+
+            if (data.ban_until) {
+
+                const banTime = new Date(data.ban_until);
+                const now = new Date();
+
+                if (banTime > now) {
+
+                    if (!isBanned) {
+
+                        isBanned = true;
+
+                        const btn = document.getElementById("sendButton");
+                        if (btn) btn.disabled = true;
+
+
+                        addMsg(
+                            "システム",
+                            "BANされています。チャットを利用できません",
+                            false,
+                            Date.now()
+                        );
+
+
+                        if (client) {
+                            client.end();
+                            client = null;
+                        }
+
+                    }
+
+                }
+            }
+        }
+        function startBanWatcher() {
+
+            setInterval(() => {
+
+                checkBanStatus();
+
+            }, 60000);
+
+        }
+        async function openAccountMenu() {
+
+            const menu = document.getElementById("accountMenu");
+
+            if (menu.style.display === "none") {
+
+                const uid = clientId.replace("id-", "");
+
+                const { data, error } = await supabaseClient
+                    .from("users")
+                    .select("icon_url,profile")
+                    .eq("id", uid)
+                    .single();
+
+
+                if (data) {
+
+                    document.getElementById("newIcon").value =
+                        data.icon_url || "";
+
+                    document.getElementById("newProfile").value =
+                        data.profile || "";
+
+                    updateIconDemo(data.icon_url);
+
+                }
+
+                menu.style.display = "block";
+
+            } else {
+
+                menu.style.display = "none";
+
+            }
+
+        }
+
+
+
+
+        async function changeUsername() {
+
+            const newName =
+                document.getElementById("newUsername")
+                    .value.trim();
+
+
+            if (!newName) {
+                showChatNotify("入力してください",null);
+                return;
+            }
+
+
+            const uid = clientId.replace("id-", "");
+
+
+            const { error } = await supabaseClient
+                .from("users")
+                .update({
+                    username: newName
+                })
+                .eq("id", uid);
+
+
+            if (error) {
+
+                showChatNotify(error.message,null);
+                return;
+
+            }
+
+
+            userName = newName;
+
+            document.getElementById("profile")
+                .innerText =
+                `${userName} / ${userRoom}`;
+            showChatNotify("ユーザー名を変更しました","システム通知");
+
+        }
+        async function changePassword() {
+
+            const password =
+                document.getElementById("newPassword")
+                    .value;
+
+
+            if (!password) {
+                showChatNotify("入力してください",null);
+                return;
+            }
+
+
+            const hash =
+                await hashPassword(password);
+
+
+            const uid =
+                clientId.replace("id-", "");
+
+
+            const { error } = await supabaseClient
+                .from("users")
+                .update({
+
+                    password_hash: hash
+
+                })
+                .eq("id", uid);
+
+
+            if (error) {
+
+                showChatNotify(error.message,null);
+                return;
+
+            }
+
+
+            showChatNotify("パスワード変更しました","システム通知");
+
+            document.getElementById("newPassword")
+                .value = "";
+
+        }
+        async function deleteAccount() {
+
+            const ok =
+                confirm(
+                    "本当にアカウントを削除しますか？"
+                );
+
+
+            if (!ok) return;
+
+
+            const uid =
+                clientId.replace("id-", "");
+
+
+            const { error } = await supabaseClient
+                .from("users")
+                .delete()
+                .eq("id", uid);
+
+
+            if (error) {
+
+                showChatNotify(error.message);
+                return;
+
+            }
+
+
+            showChatNotify("アカウントを削除しました","システム通知");
+
+
+            if (client) {
+
+                client.end();
+
+            }
+
+
+            location.reload();
+
+        }
+        let deleteRequest = false;
+
+        function openDeleteModal() {
+            showChatNotify("削除ボタンが押されました",null);
+            document.getElementById("deleteMessage")
+                .innerText =
+                "本当にアカウントを削除しますか？\nこの操作は元に戻せません";
+
+
+            document.getElementById("deleteModal")
+                .style.display = "flex";
+
+        }
+
+
+
+        async function confirmDelete(result) {
+
+            document.getElementById("deleteModal")
+                .style.display = "none";
+
+
+            if (!result) {
+                console.log("削除キャンセル");
+                return;
+            }
+
+
+            const uid =
+                clientId.replace("id-", "");
+
+
+            const { error } = await supabaseClient
+                .from("users")
+                .delete()
+                .eq("id", uid);
+
+
+            if (error) {
+
+                showChatNotify(error.message,null);
+                return;
+
+            }
+
+
+            showChatNotify("アカウントを削除しました","システム通知");
+
+
+            if (client) {
+
+                client.end();
+
+            }
+
+
+            location.reload();
+
+        }
+        async function saveProfile() {
+            const icon = document.getElementById("newIcon").value.trim();
+
+            if (icon && !isValidURL(icon)) {
+                showChatNotify("正しいアイコンURLを入力してください",null);
+                return;
+            }
+            const profile = document.getElementById("newProfile").value.trim();
+
+            const uid = clientId.replace("id-", "");
+
+            const { error } = await supabaseClient
+                .from("users")
+                .update({
+                    icon_url: icon,
+                    profile: profile
+                })
+                .eq("id", uid);
+
+            if (error) {
+                showChatNotify(error.message,null);
+                return;
+            }
+
+            // ★追加
+            myProfile.icon_url = icon;
+            myProfile.profile = profile;
+            members[clientId] = {
+                name: userName,
+                icon_url: icon,
+                profile: profile,
+                points: myProfile.points,
+                time: Date.now()
+            };
+            // ★追加（すぐ他人へ反映）
+            client.publish(
+                `chanpro-chat/${userRoom}/presence`,
+                JSON.stringify({
+                    id: clientId,
+                    name: userName,
+                    icon_url: icon,
+                    profile: profile,
+                    time: Date.now()
+                }),
+                { qos: 1 }
+            );
+
+            showChatNotify("プロフィールを更新しました","システム通知");
+        }
+        let selectedProfile = null;
+
+
+        function showProfile(id, member) {
+            document.getElementById("givePointAmount").value = "";
+            selectedProfile = {
+                id: id,
+                name: member.name
+            };
+
+
+            document.getElementById("viewName")
+                .innerText = member.name;
+            const myPoints = myProfile.points || 0;
+
+            document.getElementById("givePointMax").innerText =
+                "最大送信可能ポイント: " + myPoints;
+
+            const totalPoint = member.points || 0;
+
+            const lv = Math.floor(totalPoint / 100) + 1;
+            const point = totalPoint % 100;
+
+
+            const profileText = (member.profile || "自己紹介なし")
+                .replace(/\n/g, "<br>");
+
+            document.getElementById("viewProfile").innerHTML =
+                `
 ${profileText}
 
 <div class="profile-level">
@@ -3657,448 +3956,786 @@ ${point} / 100
 `;
 
 
-const img=document.getElementById("viewIcon");
+            const img = document.getElementById("viewIcon");
 
 
-if(member.icon_url){
+            if (member.icon_url) {
 
-img.src=member.icon_url;
+                img.src = member.icon_url;
 
-}else{
+            } else {
 
-img.src=
-"https://placehold.jp/80x80.png";
+                img.src =
+                    "https://placehold.jp/80x80.png";
 
+            }
+            const reportButton = document.getElementById("viewReport");
+
+            if (id === clientId) {
+                reportButton.style.display = "none";
+            } else {
+                reportButton.style.display = "inline-block";
+                reportButton.onclick = function () {
+                    reportUser(
+                        selectedProfile.id,
+                        selectedProfile.name
+                    );
+                };
+            }
+
+            document.getElementById("profileModal").style.display = "flex";
+
+        }
+
+
+        function updateIconDemo(url) {
+
+            const img = document.getElementById("iconDemo");
+
+            if (!url) {
+                img.src = "https://placehold.jp/80x80.png";
+                return;
+            }
+
+
+            if (!isValidURL(url)) {
+                img.src = "https://placehold.jp/80x80.png";
+                return;
+            }
+
+
+            img.src = url;
+
+            img.onerror = function () {
+                img.src = "https://placehold.jp/80x80.png";
+            };
+
+        }
+
+
+        function isValidURL(url) {
+
+            try {
+                const u = new URL(url);
+
+                return (
+                    u.protocol === "http:" ||
+                    u.protocol === "https:"
+                );
+
+            } catch (e) {
+
+                return false;
+
+            }
+
+        }
+        async function saveChatHistory(name, id, msg) {
+
+            // roomだけ保存
+            if (userRoom !== "room") return;
+
+            // Base64画像を削除
+            const text = msg
+                .replace(/data:image\/[^\s]+/g, "")
+                .trim();
+
+            // テキストが無ければ保存しない
+            if (!text) return;
+
+            const { error } = await supabaseClient
+                .from("room_chat_history")
+                .insert({
+                    username: name,
+                    user_id: id,
+                    message: text
+                });
+
+            if (error) {
+                console.log("履歴保存失敗", error);
+            }
+        }
+        /* async function loadChatHistory(){
+        
+            if(userRoom !== "room") return;
+        
+            if(historyLoaded) return;
+        
+            historyLoaded=true;
+        
+        
+            const {data,error}=await supabaseClient
+            .from("room_chat_history")
+            .select("*")
+            .order("created_at",{ascending:true})
+            .limit(100);
+        
+        
+            if(error){
+                console.log(error);
+                return;
+            }
+        
+        
+            data.forEach(row=>{
+        
+                const id="history-"+row.id;
+        
+                if(history[id]) return;
+        
+                history[id]=true;
+        
+        
+                addMsg(
+                    row.username,
+                    row.message,
+                    row.user_id===clientId,
+                    new Date(row.created_at).getTime()
+                );
+        
+            });
+        
+        } */
+        async function loadOrSyncHistory() {
+            // room以外はMQTT同期のみ
+            if (userRoom !== "room") {
+                historyLoaded = true;
+                historyLoading = false;
+
+                await new Promise(resolve => {
+                    let count = 0;
+                    const timer = setInterval(() => {
+                        count++;
+                        if (syncFinished || count >= 30) {
+                            clearInterval(timer);
+                            resolve();
+                        }
+                    }, 100);
+                });
+
+                pendingJoinMessages.forEach(data => {
+                    addMsg(
+                        "システム",
+                        `${data.name}さんが参加しました`,
+                        false,
+                        Date.now()
+                    );
+                });
+
+                pendingJoinMessages = [];
+                return;
+            }
+
+            // roomだけSupabase
+            requestSync();
+            await new Promise(resolve => {
+                let count = 0;
+                const timer = setInterval(() => {
+                    count++;
+                    if (syncFinished || count >= 30) {
+                        clearInterval(timer);
+                        resolve();
+                    }
+                }, 100);
+            });
+
+            if (Object.keys(history).length > 0) {
+                console.log("MQTT履歴あり");
+                return;
+            }
+
+            console.log("MQTT履歴なし Supabase確認");
+
+            const { data, error } = await supabaseClient
+                .from("room_chat_history")
+                .select("*")
+                .order("created_at", { ascending: true })
+                .order("id", { ascending: true })
+                .limit(1000);
+
+            if (error) {
+                console.log("履歴取得エラー", error);
+                requestSync();
+                return;
+            }
+
+            if (data && data.length > 0) {
+                console.log("Supabase履歴読み込み:", data.length);
+
+                for (const row of data) {
+                    const id = "history-" + row.id;
+                    const msg = {
+                        msgId: id,
+                        id: row.user_id,
+                        name: row.username,
+                        msg: row.message,
+                        time: new Date(row.created_at).getTime()
+                    };
+
+                    history[id] = msg;
+
+                    await addMsg(
+                        msg.name,
+                        msg.msg,
+                        msg.id === clientId,
+                        msg.time,
+                        chat,
+                        msg.id
+                    );
+                }
+                chat.scrollTop = chat.scrollHeight;
+            } else {
+                console.log("Supabase履歴なし MQTT同期");
+                requestSync();
+            }
+
+            console.log("MQTT同期用履歴:", Object.keys(history).length);
+            await messageQueue;
+
+            historyLoaded = true;
+            historyLoading = false;
+
+            for (const data of pendingJoinMessages) {
+                await addMsg(
+                    "システム",
+                    `${data.name}さんが参加しました`,
+                    false,
+                    Date.now()
+                );
+            }
+
+            pendingJoinMessages = [];
+        }
+function updatePointBar(point){
+    const level=Math.floor(point/100)+1;
+    const remain=point%100;
+
+    document.getElementById("pointText").innerHTML=
+    "<div style='display:flex; justify-content:flex-start; gap:30px; align-items:center;'>"+
+    "<span>Lv."+level+"</span>"+
+    "<span>"+remain+" / 100</span>"+
+    "</div>";
+
+    document.getElementById("pointBar").style.width=remain+"%";
+
+    updatePointRank();
 }
-const reportButton = document.getElementById("viewReport");
 
-if(id === clientId){
-    reportButton.style.display = "none";
-}else{
-    reportButton.style.display = "inline-block";
-    reportButton.onclick = function(){
-        reportUser(
-            selectedProfile.id,
-            selectedProfile.name
-        );
-    };
-}
+async function givePoint() {
 
-document.getElementById("profileModal").style.display = "flex";
+            if (!selectedProfile) return;
 
-}
+            const amount = parseInt(
+                document.getElementById("givePointAmount").value
+            );
+
+            if (!amount || amount <= 0) {
+                showPointMessage("ポイント数を入力してください");
+                return;
+            }
 
 
-function updateIconDemo(url){
-
- const img=document.getElementById("iconDemo");
-
- if(!url){
-    img.src="https://placehold.jp/80x80.png";
-    return;
- }
+            // 自分自身は禁止
+            if (selectedProfile.id === clientId) {
+                showPointMessage("自分には送れません");
+                return;
+            }
 
 
- if(!isValidURL(url)){
-    img.src="https://placehold.jp/80x80.png";
-    return;
- }
+            const uid = clientId.replace("id-", "");
+            const targetUid = selectedProfile.id.replace("id-", "");
 
 
- img.src=url;
+            // 自分のポイント確認
+            const { data: me, error: meError } = await supabaseClient
+                .from("users")
+                .select("points")
+                .eq("id", uid)
+                .single();
 
- img.onerror=function(){
-    img.src="https://placehold.jp/80x80.png";
- };
 
-}
+            if (meError || !me) {
+                showPointMessage("ポイント取得失敗");
+                return;
+            }
 
 
-function isValidURL(url){
+            if ((me.points || 0) < amount) {
+                showPointMessage("ポイントが足りません");
+                return;
+            }
 
- try{
-    const u=new URL(url);
 
-    return (
-      u.protocol==="http:" ||
-      u.protocol==="https:"
-    );
+            // 自分は半分返還（切り捨て）
+            const back = Math.floor(amount / 6);
 
- }catch(e){
+            const selfChange = -amount + back;
 
-    return false;
 
- }
+            // 自分の表示更新
+            myProfile.points =
+                (myProfile.points || 0) + selfChange;
 
-}
-async function saveChatHistory(name, id, msg){
+            updatePointBar(myProfile.points);
 
-    // roomだけ保存
-    if(userRoom !== "room") return;
 
-    // Base64画像を削除
-    const text = msg
-        .replace(/data:image\/[^\s]+/g, "")
-        .trim();
+            // 通知
+            client.publish(
+                `chanpro-chat/${userRoom}/presence`,
+                JSON.stringify({
+                    id: clientId,
+                    name: userName,
+                    icon_url: myProfile.icon_url || "",
+                    profile: myProfile.profile || "",
+                    points: myProfile.points,
+                    time: Date.now()
+                }),
+                { qos: 1 }
+            );
+            client.publish(
+                `chanpro-chat/${userRoom}/point`,
+                JSON.stringify({
+                    from: clientId,
+                    fromName: userName,
+                    target: selectedProfile.id,
+                    amount: amount,
+                    time: Date.now()
+                }),
+                { qos: 1 }
+            );
 
-    // テキストが無ければ保存しない
-    if(!text) return;
+            showPointMessage(
+                selectedProfile.name +
+                "さんに" +
+                amount +
+                "ポイント送りました"
+            );
 
-    const { error } = await supabaseClient
-        .from("room_chat_history")
-        .insert({
-            username: name,
-            user_id: id,
-            message: text
-        });
 
-    if(error){
-        console.log("履歴保存失敗", error);
+            document.getElementById("givePointAmount").value = "";
+        }
+        function showPointMessage(text) {
+
+            const box = document.getElementById("pointMessage");
+
+            if (!box) return;
+
+            box.innerText = text;
+
+            setTimeout(() => {
+                box.innerText = "";
+            }, 3000);
+        }
+function showChatNotify(message,title="通知",save=true,id=null){
+
+    const notifyId=id||crypto.randomUUID();
+
+    if(save && title!==null && !notificationHistoryIds[notifyId]){
+
+        notificationHistoryIds[notifyId]=true;
+
+        const notify={
+            id:notifyId,
+            msg:message,
+            time:Date.now(),
+            title:title
+        };
+
+        developerNotifications.unshift(notify);
+        developerNotifications=developerNotifications.slice(0,50);
+
+        if(client && developerHistoryTopic){
+            client.publish(
+                developerHistoryTopic,
+                JSON.stringify(developerNotifications),
+                {
+                    qos:1,
+                    retain:true
+                }
+            );
+        }
     }
+
+    const area=document.getElementById("chatNotify");
+    const div=document.createElement("div");
+
+    div.className="chat-notify";
+    div.textContent=message;
+
+    area.appendChild(div);
+
+    setTimeout(()=>{
+        div.remove();
+    },3300);
 }
-/* async function loadChatHistory(){
+async function loadDeveloperMessages(){
 
-    if(userRoom !== "room") return;
+    const uid = clientId.replace("id-","");
 
-    if(historyLoaded) return;
-
-    historyLoaded=true;
-
-
-    const {data,error}=await supabaseClient
-    .from("room_chat_history")
-    .select("*")
-    .order("created_at",{ascending:true})
-    .limit(100);
-
+    const {data,error} = await supabaseClient
+        .from("developer_messages")
+        .select("*")
+        .eq("user_id",uid)
+        .eq("read",false)
+        .order("created_at",{ascending:true});
 
     if(error){
         console.log(error);
         return;
     }
 
+    if(!data) return;
 
-    data.forEach(row=>{
-
-        const id="history-"+row.id;
-
-        if(history[id]) return;
-
-        history[id]=true;
-
-
-        addMsg(
-            row.username,
-            row.message,
-            row.user_id===clientId,
-            new Date(row.created_at).getTime()
-        );
-
-    });
-
-} */
-async function loadOrSyncHistory(){
-
-    // room以外はMQTT同期のみ
-    if(userRoom !== "room"){
-        requestSync();
-
-        await new Promise(resolve=>{
-            let count=0;
-            const timer=setInterval(()=>{
-                count++;
-                if(syncFinished || count>=30){
-                    clearInterval(timer);
-                    resolve();
-                }
-            },100);
-        });
-
-        historyLoading=false;
-
-        pendingJoinMessages.forEach(data=>{
-            addMsg(
-                "システム",
-                `${data.name}さんが参加しました`,
-                false,
-                Date.now()
-            );
-        });
-
-        pendingJoinMessages=[];
-
-        return;
+    for(const msg of data){
+        const notify={
+            id:"db-"+msg.id,
+            msg:msg.message,
+            time:new Date(msg.created_at).getTime()
+        };
+    
+        addDeveloperNotification(notify);
+    
+        await supabaseClient
+            .from("developer_messages")
+            .update({read:true})
+            .eq("id",msg.id);
     }
 
-    // roomだけSupabase
-    requestSync();
- await new Promise(resolve=>{
-
-   let count=0;
-
-   const timer=setInterval(()=>{
-
-     count++;
-
-     if(syncFinished || count>=30){
-       clearInterval(timer);
-       resolve();
-     }
-
-   },100);
-
- });
-
- if(Object.keys(history).length>0){
-   console.log("MQTT履歴あり");
-   return;
- }
-
-
- console.log("MQTT履歴なし Supabase確認");
-
- // Supabase処理
-
-
-    const {data,error}=await supabaseClient
-     .from("room_chat_history")
-     .select("*")
-     .order("created_at",{ascending:true})
-     .order("id",{ascending:true})
-     .limit(100);
-
-
-    if(error){
-        console.log("履歴取得エラー",error);
-
-        // Supabase失敗ならMQTT同期
-        requestSync();
-        return;
-    }
-
-
-    if(data && data.length > 0){
-
-        console.log(
-            "Supabase履歴読み込み:",
-            data.length
-        );
-
-
-        for(const row of data){
-        
-          const id="history-"+row.id;
-        
-          const msg={
-            msgId:id,
-            id:row.user_id,
-            name:row.username,
-            msg:row.message,
-            time:new Date(row.created_at).getTime()
-          };
-        
-          history[id]=msg;
-        
-          await addMsg(
-            msg.name,
-            msg.msg,
-            msg.id===clientId,
-            msg.time
-          );
-        
-        }
-
-
-    }else{
-
-        console.log(
-            "Supabase履歴なし MQTT同期"
-        );
-
-        requestSync();
-
-    }
-    // Supabaseから復元した履歴をMQTT共有用に保持
-    console.log(
-        "MQTT同期用履歴:",
-        Object.keys(history).length
-    );
-    historyLoaded=true;
-    historyLoading=false;
-    pendingJoinMessages.forEach(data=>{
-        addMsg(
-            "システム",
-            `${data.name}さんが参加しました`,
-            false,
-            Date.now()
-        );
-    });
-
-    pendingJoinMessages=[];    
+    saveDeveloperNotificationHistory();
 }
-function updatePointBar(point){
-
-    const level=Math.floor(point / 100);
-    const remain=point % 100;
-
-    document.getElementById("pointText")
-    .innerHTML=
-    "Lv."+(level+1)+
-    "<span style='margin-left:50px;'>"+
-    remain+
-    " / 100</span>";
 
 
-    document.getElementById("pointBar")
-    .style.width=
-    remain+"%";
-}
-async function givePoint(){
+function addDeveloperNotification(data){
+    const notify={
+        id:data.id || crypto.randomUUID(),
+        msg:data.msg,
+        time:data.time||Date.now()
+    };
 
-    if(!selectedProfile) return;
+    if(notificationHistoryIds[notify.id]) return;
 
-    const amount=parseInt(
-        document.getElementById("givePointAmount").value
-    );
+    notificationHistoryIds[notify.id]=true;
 
-    if(!amount || amount<=0){
-        showPointMessage("ポイント数を入力してください");
-        return;
+    developerNotifications.unshift(notify);
+
+    if(developerNotifications.length>50){
+        developerNotifications.pop();
     }
 
+    // 表示だけ
+    showChatNotify("開発者: "+data.msg,"開発者通知");
+}
 
-    // 自分自身は禁止
-    if(selectedProfile.id===clientId){
-        showPointMessage("自分には送れません");
+
+
+let developerNotificationOpen=false;
+
+/* 
+async function showDeveloperNotifications(){
+
+    const box=document.getElementById("developerNotificationBox");
+
+
+    // 閉じる
+    if(developerNotificationOpen){
+        box.style.display="none";
+        developerNotificationOpen=false;
         return;
     }
 
 
     const uid=clientId.replace("id-","");
-    const targetUid=selectedProfile.id.replace("id-","");
 
 
-    // 自分のポイント確認
-    const {data:me,error:meError}=await supabaseClient
+    const {data,error}=await supabaseClient
+        .from("developer_messages")
+        .select("*")
+        .eq("user_id",uid)
+        .order("created_at",{ascending:false});
+
+
+    if(error){
+        console.log(error);
+        showChatNotify("通知取得失敗");
+        return;
+    }
+
+
+    if(!data || data.length===0){
+        showChatNotify("通知はありません");
+        return;
+    }
+
+
+    box.innerHTML="";
+
+
+    data.forEach(n=>{
+
+        const div=document.createElement("div");
+
+        div.style.padding="12px";
+        div.style.marginBottom="8px";
+        div.style.borderRadius="10px";
+        div.style.background="#ffffff";
+        div.style.boxShadow="0 2px 8px rgba(0,0,0,.2)";
+
+
+        div.innerHTML=`
+        <b>${n.title || "開発者から個人通知"}</b><br>
+        ${n.message || n.body || ""}<br>
+        <small>
+        ${new Date(n.created_at).toLocaleString()}
+        </small>
+        `;
+
+
+        box.appendChild(div);
+
+    });
+
+
+    // 表示
+    box.style.display="block";
+    developerNotificationOpen=true;
+
+
+    // 既読にする
+    await supabaseClient
+        .from("developer_messages")
+        .update({read:true})
+        .eq("user_id",uid)
+        .eq("read",false);
+
+}
+ */
+async function showDeveloperNotifications(){
+
+    const box=document.getElementById(
+        "developerNotificationBox"
+    );
+
+    if(developerNotificationOpen){
+        box.style.display="none";
+        developerNotificationOpen=false;
+        return;
+    }
+
+
+    box.innerHTML="";
+
+
+    if(
+        !developerNotifications ||
+        developerNotifications.length===0
+    ){
+        showChatNotify("通知はありません",null);
+        return;
+    }
+
+
+    developerNotifications.forEach((n,index)=>{
+    
+        const div=document.createElement("div");
+    
+        div.style.position="relative";
+        div.style.padding="12px";
+        div.style.marginBottom="8px";
+        div.style.borderRadius="10px";
+        div.style.background="#ffffff";
+        div.style.boxShadow="0 2px 8px rgba(0,0,0,.2)";
+    
+        const del=document.createElement("button");
+        del.textContent="×";
+        del.style.position="absolute";
+        del.style.right="8px";
+        del.style.top="8px";
+        del.style.width="25px";
+        del.style.height="25px";
+        del.style.border="none";
+        del.style.borderRadius="50%";
+        del.style.background="#ff5555";
+        del.style.color="white";
+        del.style.cursor="pointer";
+    
+        del.onclick=function(){
+    
+            if(!confirm("この通知を削除しますか？")) return;
+    
+            developerNotifications.splice(index,1);
+    
+            saveDeveloperNotificationHistory();
+    
+            showDeveloperNotifications();
+    
+        };
+    
+        div.innerHTML=`
+            <b>${n.title||"通知"}</b><br>
+            ${n.msg}<br>
+            <small>
+            ${new Date(n.time).toLocaleString()}
+            </small>
+        `;
+    
+        div.appendChild(del);
+    
+        box.appendChild(div);
+    });
+    
+    
+        box.style.display="block";
+        developerNotificationOpen=true;
+}
+function openDeveloperDM(){
+
+  document.getElementById("developerDMModal").style.display="flex";
+
+}
+
+
+function closeDeveloperDM(){
+
+  document.getElementById("developerDMModal").style.display="none";
+
+}
+
+
+async function sendDeveloperDM(){
+
+    const text =
+    document.getElementById("developerDMText")
+    .value.trim();
+
+    if(!text)return;
+
+
+    const uid =
+    clientId.replace("id-","");
+
+
+    const {data:user}=
+    await supabaseClient
     .from("users")
-    .select("points")
+    .select("username")
     .eq("id",uid)
     .single();
 
 
-    if(meError || !me){
-        showPointMessage("ポイント取得失敗");
+    const {error}=
+    await supabaseClient
+    .from("developer_inbox")
+    .insert({
+
+        user_id:uid,
+
+        username:user.username,
+
+        message:text
+
+    });
+
+
+    if(error){
+
+        console.log(error);
+        showChatNotify("送信失敗",null);
         return;
+
     }
 
 
-    if((me.points || 0) < amount){
-        showPointMessage("ポイントが足りません");
-        return;
+    document.getElementById("developerDMText")
+    .value="";
+
+
+    showChatNotify("開発者へ送信しました",null);
+
+}
+async function updatePointRank(){
+    const uid = clientId.replace("id-","");
+
+    const excludedIds = [
+        "b2d3032f-b29e-42d9-a835-2b3c3289669f",
+        "5c0aef29-53e5-4f32-ab72-6505d71f887b"
+    ];
+
+    const {data,error}=await supabaseClient
+        .from("users")
+        .select("id,points")
+        .order("points",{ascending:false});
+
+    if(error || !data)return;
+
+    // 除外ユーザーをランキング対象から削除
+    const rankingUsers = data.filter(user => !excludedIds.includes(user.id));
+
+    const rank = rankingUsers.findIndex(user => user.id === uid) + 1;
+
+
+    const rankText=document.getElementById("Rank");
+    if(rankText){
+        rankText.innerText = rank > 0 ? "順位: " + rank + "位" : "順位対象外";
     }
+}
+function saveRetainHistory(){
 
+    if(userRoom === "room") return;
+    if(!client) return;
 
-    // 相手へ加算
-    await supabaseClient.rpc(
-        "add_user_points",
+    const list = Object.values(history)
+        .sort((a,b)=>a.time-b.time)
+        .slice(-500);
+
+    client.publish(
+        `chanpro-chat/${userRoom}/history`,
+        JSON.stringify(list),
         {
-            userid:targetUid,
-            amount:amount
+            qos:1,
+            retain:true
         }
     );
 
+    console.log("Retain履歴保存", list.length);
+}
+function receiveRetainHistory(list){
 
-    // 自分は半分返還（切り捨て）
-    const back=Math.floor(amount/2);
+    if(userRoom === "room") return;
+    if(!Array.isArray(list)) return;
+    if(Object.keys(history).length > 0) return;
 
-    const selfChange=-amount+back;
+    list.sort((a,b)=>a.time-b.time);
 
+    list.forEach(msg=>{
+        receiveMessage(msg);
+    });
 
-    await supabaseClient.rpc(
-        "add_user_points",
+    historyLoading = false;
+
+    console.log("Retain履歴読込", list.length);
+    pendingJoinMessages.forEach(data=>{
+        addMsg("システム",`${data.name}さんが参加しました`,false,Date.now());
+    });
+    pendingJoinMessages = [];
+}
+function saveDeveloperNotificationHistory() {
+
+    developerNotifications = developerNotifications
+        .sort((a,b)=>b.time-a.time)
+        .slice(0,50);
+
+    client.publish(
+        developerHistoryTopic,
+        JSON.stringify(developerNotifications),
         {
-            userid:uid,
-            amount:selfChange
+            qos:1,
+            retain:true
         }
     );
-
-
-    // 自分の表示更新
-    myProfile.points=
-        (myProfile.points || 0)+selfChange;
-
-    updatePointBar(myProfile.points);
-
-
-    // 通知
-    client.publish(
-        `chanpro-chat/${userRoom}/presence`,
-        JSON.stringify({
-            id:clientId,
-            name:userName,
-            icon_url:myProfile.icon_url || "",
-            profile:myProfile.profile || "",
-            points:myProfile.points,
-            time:Date.now()
-        }),
-        {qos:0}
-    );
-    client.publish(
-        `chanpro-chat/${userRoom}/point`,
-        JSON.stringify({
-            from:clientId,
-            fromName:userName,
-            target:selectedProfile.id,
-            amount:amount,
-            time:Date.now()
-        }),
-        {qos:1}
-    );
-
-    showPointMessage(
-        selectedProfile.name+
-        "さんに"+
-        amount+
-        "ポイント送りました"
-    );
-
-
-    document.getElementById("givePointAmount").value="";
 }
-function showPointMessage(text){
+    </script>
 
-    const box=document.getElementById("pointMessage");
-
-    if(!box) return;
-
-    box.innerText=text;
-
-    setTimeout(()=>{
-        box.innerText="";
-    },3000);
-}
-function showChatNotify(message,type="info"){
-
-    const area=document.getElementById("chatNotify");
-
-    const div=document.createElement("div");
-
-    div.className=
-        "chat-notify " + type;
-
-    div.textContent=message;
-
-
-    area.appendChild(div);
-
-
-    setTimeout(()=>{
-
-        div.remove();
-
-    },3300);
-}
-</script>
 
 </body>
+
 </html>
