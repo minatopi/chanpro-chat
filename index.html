@@ -4827,6 +4827,7 @@ function sendStamp(url){
         showChatNotify("ログインしてください",null);
         return;
     }
+
     const n={
         msgId:crypto.randomUUID(),
         id:clientId,
@@ -4838,18 +4839,16 @@ function sendStamp(url){
         time:Date.now()
     };
 
-
     history[n.msgId]=n;
 
+    client.publish(
+        `chanpro-chat/${userRoom}/msg`,
+        JSON.stringify(n),
+        {qos:1}
+    );
 
-    if(client){
-        client.publish(
-            `chanpro-chat/${userRoom}/msg`,
-            JSON.stringify(n),
-            {qos:1}
-        );
-    }
-
+    // 追加
+    saveChatHistory(userName, clientId, url);
 
     addMsg(
         userName,
@@ -4860,6 +4859,10 @@ function sendStamp(url){
         clientId
     );
 
+    // 追加
+    if(Object.keys(members).length === 1){
+        saveRetainHistory();
+    }
 }
 function showStampList(list){
 
@@ -4881,8 +4884,8 @@ function showStampList(list){
    const img=document.createElement("img");
 
    img.src=stamp.url;
-   img.style.width="70px";
-   img.style.height="70px";
+   img.style.width="80px";
+   img.style.height="80px";
    img.style.objectFit="contain";
 
    const text=document.createElement("div");
