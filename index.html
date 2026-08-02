@@ -775,7 +775,7 @@ z-index:999;
 
             <input id="setPassword" type="password" placeholder="パスワード">
 
-            <input id="setRoom" value="room" placeholder="参加するチャット">
+            <input id="setRoom" value="room2" placeholder="参加するチャット">
 
 
             <button onclick="createUser()">
@@ -825,7 +825,7 @@ z-index:999;
             ">
             </div>
 
-</div>
+        </div>
             
             <div id="developerNotificationBox"
             style="
@@ -1006,7 +1006,45 @@ gap:5px;
                     <button onclick="selectImage()">
                         ＋
                     </button>
+<button onclick="openStampMenu()">
+😑
+</button>
 
+<div id="stampMenu"
+style="
+display:none;
+position:absolute;
+bottom:45px;
+left:60px;
+width:400px;
+max-height:400px;
+background:white;
+padding:10px;
+border-radius:12px;
+box-shadow:0 4px 15px rgba(0,0,0,.3);
+z-index:9999;
+">
+
+<input id="stampSearch"
+placeholder="検索"
+oninput="searchStamp()"
+style="
+width:95%;
+height:30px;
+margin-bottom:10px;
+">
+
+<div id="stampListArea"
+style="
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:5px;
+max-height:300px;
+overflow-y:auto;
+">
+</div>
+
+</div>
 
                     <input id="msg" placeholder="メッセージ">
 
@@ -1021,8 +1059,6 @@ gap:5px;
                         送信
 
                     </button>
-
-
                 </div>
 
 
@@ -1067,7 +1103,25 @@ gap:5px;
             profile: "",
             points: 0
         };
+const stampList = [
+{
+name:"・・・。",
+url:"https://cdn.phototourl.com/free/2026-08-02-39bb987b-179d-41ca-903f-b1a537a2de1c.png",
+},
+{
+name:"ばいばい！",
+url:"https://cdn.phototourl.com/free/2026-08-02-e6aeb3d6-7c78-4b98-851d-014f984ebae5.png",
+},
+{
+name:"湯川先生",
+url:"https://cdn.phototourl.com/free/2026-08-02-02e07729-40f5-4ed5-8e8d-0b2bf7c54da6.png"
+},
+{
+    name:"これ好き",
+    url:"https://cdn.phototourl.com/free/2026-08-02-4b4b0136-476c-490d-8169-177be3d8eba0.png"
+},
 
+];
         const SUPABASE_URL =
             "https://ldnmqfmebvyzlmhgnljf.supabase.co";
 
@@ -2607,11 +2661,13 @@ function receiveMessage(data){
                         img.src = part;
 
 
-                        img.style.maxWidth = "250px";
-                        img.style.maxHeight = "250px";
-                        img.style.borderRadius = "10px";
-                        img.style.marginTop = "5px";
-                        img.style.display = "block";
+                        img.style.width="150px";
+                        img.style.height="150px";
+                        img.style.objectFit="contain";
+                        img.style.borderRadius="5px";
+                        img.style.marginTop="5px";
+                        img.style.display="block";
+                        img.style.gap="10px";
 
 
                         fragment.appendChild(img);
@@ -4733,8 +4789,139 @@ function saveDeveloperNotificationHistory() {
         }
     );
 }
-    </script>
+function openStampMenu(){
 
+ const menu=document.getElementById("stampMenu");
+
+ if(menu.style.display==="block"){
+   menu.style.display="none";
+   return;
+ }
+
+ const search=document.getElementById("stampSearch");
+
+ menu.innerHTML="";
+
+ if(search){
+   menu.appendChild(search);
+ }
+
+ const area=document.createElement("div");
+ area.id="stampListArea";
+
+ menu.appendChild(area);
+
+ searchStamp();
+
+ menu.style.display="block";
+ menu.style.position="absolute";
+ menu.style.right="10px";
+ menu.style.top="60px";
+ menu.style.background="#fff";
+ menu.style.padding="10px";
+ menu.style.borderRadius="10px";
+
+}
+function sendStamp(url){
+    if(!started || !clientId || !client){
+        showChatNotify("ログインしてください",null);
+        return;
+    }
+    const n={
+        msgId:crypto.randomUUID(),
+        id:clientId,
+        name:userName,
+        icon_url:myProfile.icon_url,
+        profile:myProfile.profile,
+        points:myProfile.points,
+        msg:url,
+        time:Date.now()
+    };
+
+
+    history[n.msgId]=n;
+
+
+    if(client){
+        client.publish(
+            `chanpro-chat/${userRoom}/msg`,
+            JSON.stringify(n),
+            {qos:1}
+        );
+    }
+
+
+    addMsg(
+        userName,
+        url,
+        true,
+        n.time,
+        chat,
+        clientId
+    );
+
+}
+function showStampList(list){
+
+ const area=document.getElementById("stampListArea");
+ if(!area)return;
+
+ area.innerHTML="";
+
+ area.style.display="grid";
+ area.style.gridTemplateColumns="repeat(5,70px)";
+ area.style.gap="10px";
+
+
+ list.forEach(stamp=>{
+
+   const box=document.createElement("div");
+   box.style.textAlign="center";
+
+   const img=document.createElement("img");
+
+   img.src=stamp.url;
+   img.style.width="70px";
+   img.style.height="70px";
+   img.style.objectFit="contain";
+
+   const text=document.createElement("div");
+   text.textContent=stamp.name;
+   text.style.fontSize="12px";
+
+   box.onclick=()=>{
+     sendStamp(stamp.url);
+     document.getElementById("stampMenu").style.display="none";
+   };
+
+
+   box.appendChild(img);
+   box.appendChild(text);
+
+   area.appendChild(box);
+
+ });
+
+}
+function searchStamp(){
+
+    const word=document
+    .getElementById("stampSearch")
+    .value
+    .toLowerCase();
+
+
+    const result=stampList.filter(stamp=>
+        stamp.name
+        .toLowerCase()
+        .includes(word)
+    );
+
+
+    showStampList(result);
+
+}
+    </script>
 
 </body>
 
