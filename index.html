@@ -637,6 +637,42 @@ z-index:999;
         </div>
 
     </div>
+<!-- スタンプ購入確認モーダル -->
+<div id="buyStampModal" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+justify-content:center;
+align-items:center;
+z-index:9999999;
+">
+
+    <div style="
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+    ">
+
+        <p id="buyStampMessage">
+            スタンプを購入しますか？
+        </p>
+
+        <button onclick="confirmBuyStamp(true)">
+            購入
+        </button>
+
+        <button onclick="confirmBuyStamp(false)">
+            キャンセル
+        </button>
+
+    </div>
+
+</div>
 <!-- 通知削除確認モーダル -->
 <div id="deleteNotifyModal" style="
 display:none;
@@ -1101,28 +1137,51 @@ overflow-y:auto;
         myProfile = {
             icon_url: "",
             profile: "",
-            points: 0
+            points: 0,
+            stamp_list:[]
         };
 const stampList = [
 {
 name:"・・・。",
 url:"https://cdn.phototourl.com/free/2026-08-02-39bb987b-179d-41ca-903f-b1a537a2de1c.png",
+price:0
+    
 },
 {
 name:"ばいばい！",
 url:"https://cdn.phototourl.com/free/2026-08-02-e6aeb3d6-7c78-4b98-851d-014f984ebae5.png",
-},
-{
-name:"湯川先生",
-url:"https://cdn.phototourl.com/free/2026-08-02-02e07729-40f5-4ed5-8e8d-0b2bf7c54da6.png"
+price:0
+    
 },
 {
     name:"これ好き",
-    url:"https://cdn.phototourl.com/free/2026-08-02-4b4b0136-476c-490d-8169-177be3d8eba0.png"
+    url:"https://cdn.phototourl.com/free/2026-08-02-4b4b0136-476c-490d-8169-177be3d8eba0.png",
+    price:0
+    
+},
+
+{   
+    name:"泣",
+    url:"https://cdn.phototourl.com/free/2026-08-03-356e3055-c22a-44cc-a956-e0114f06eb51.png",
+    price:0
+    
+},
+{
+    name:"こんにちは",
+    url:"https://cdn.phototourl.com/free/2026-08-03-f291d262-db64-4650-b83d-d5765fe58d27.png",
+    price:0
+},
+{
+name:"ガリレオ",
+url:"https://cdn.phototourl.com/free/2026-08-02-02e07729-40f5-4ed5-8e8d-0b2bf7c54da6.png",
+price:50
+    
 },
 {
     name:"千空",
-    url:"https://cdn.phototourl.com/free/2026-08-02-4398fd8b-37d8-469d-96db-c5ca819b25c2.png"
+    url:"https://cdn.phototourl.com/free/2026-08-02-4398fd8b-37d8-469d-96db-c5ca819b25c2.png",
+    price:100
+    
 }
 ];
         const SUPABASE_URL =
@@ -1338,6 +1397,7 @@ url:"https://cdn.phototourl.com/free/2026-08-02-02e07729-40f5-4ed5-8e8d-0b2bf7c5
 
             });
         }
+        let buyStampTarget = null;
         let historyLoaded = false;
         let nameConflict = false;
         let myNameCheck = false;
@@ -1514,7 +1574,7 @@ url:"https://cdn.phototourl.com/free/2026-08-02-02e07729-40f5-4ed5-8e8d-0b2bf7c5
                 "id-" + userId;
             const { data: userData, error } = await supabaseClient
                 .from("users")
-                .select("icon_url,profile,username,points")
+                .select("icon_url,profile,username,points,stamp_list")
                 .eq("id", userId)
                 .single();
 
@@ -1522,7 +1582,8 @@ url:"https://cdn.phototourl.com/free/2026-08-02-02e07729-40f5-4ed5-8e8d-0b2bf7c5
                 myProfile = {
                     icon_url: userData.icon_url || "",
                     profile: userData.profile || "",
-                    points: userData.points || 0
+                    points: userData.points || 0,
+                    stamp_list:userData.stamp_list||[]
                 };
 
                 userName = userData.username || userName;
@@ -4325,10 +4386,8 @@ async function givePoint() {
             }
 
 
-            // 自分は半分返還（切り捨て）
-            const back = Math.floor(amount / 6);
+            const selfChange = -amount;
 
-            const selfChange = -amount + back;
 
 
             // 自分の表示更新
@@ -4895,15 +4954,43 @@ function showStampList(list){
    text.textContent=stamp.name;
    text.style.fontSize="12px";
 
-   box.onclick=()=>{
-     sendStamp(stamp.url);
-     document.getElementById("stampMenu").style.display="none";
-   };
+    const owned =
+        stamp.price===0 ||
+        myProfile.stamp_list.includes(stamp.url);
+    
+    box.onclick=()=>{
+    
+        if(!owned){
+            openBuyStamp(stamp);
+            return;
+        }
+    
+        sendStamp(stamp.url);
+        document.getElementById("stampMenu").style.display="none";
+    };
 
 
    box.appendChild(img);
    box.appendChild(text);
-
+    if(!owned){
+    
+        box.style.position="relative";
+    
+        const lock=document.createElement("div");
+    
+        lock.textContent=`🔒 ${stamp.price}P`;
+    
+        lock.style.position="absolute";
+        lock.style.right="2px";
+        lock.style.bottom="15px";
+        lock.style.background="rgba(0,0,0,.7)";
+        lock.style.color="#fff";
+        lock.style.fontSize="11px";
+        lock.style.padding="2px 5px";
+        lock.style.borderRadius="10px";
+    
+        box.appendChild(lock);
+    }
    area.appendChild(box);
 
  });
@@ -4926,6 +5013,74 @@ function searchStamp(){
 
     showStampList(result);
 
+}
+async function buyStamp(stamp){
+    if(!started || !clientId){
+        showChatNotify("ログインしてください", null);
+        return;
+    }
+    if(myProfile.points<stamp.price){
+        showChatNotify("ポイントが足りません");
+        return;
+    }
+
+    const uid=clientId.replace("id-","");
+
+    const newList=[
+        ...myProfile.stamp_list,
+        stamp.url
+    ];
+
+    const {error}=await supabaseClient
+    .from("users")
+    .update({
+        points:myProfile.points-stamp.price,
+        stamp_list:newList
+    })
+    .eq("id",uid);
+
+    if(error){
+        console.log(error);
+        return;
+    }
+
+    myProfile.points-=stamp.price;
+    myProfile.stamp_list=newList;
+
+    updatePointBar(myProfile.points);
+
+    showChatNotify("購入しました");
+    openStampMenu();
+}
+function openBuyStamp(stamp){
+
+    // 未ログインなら購入確認を開かない
+    if(!started || !clientId){
+        showChatNotify("ログインしてください", null);
+        return;
+    }
+
+    buyStampTarget = stamp;
+
+    document.getElementById("buyStampMessage").innerText =
+        `「${stamp.name}」を\n${stamp.price}ポイントで購入しますか？`;
+
+    document.getElementById("buyStampModal").style.display = "flex";
+}
+async function confirmBuyStamp(result){
+
+    document.getElementById("buyStampModal").style.display = "none";
+
+    if(!result){
+        buyStampTarget = null;
+        return;
+    }
+
+    if(buyStampTarget){
+        await buyStamp(buyStampTarget);
+    }
+
+    buyStampTarget = null;
 }
     </script>
 
