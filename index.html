@@ -994,7 +994,30 @@ z-index:200;
 
 
                 <hr>
-
+                <div class="sound-setting">
+                  <label>
+                    <input type="checkbox" id="receiveSoundToggle">
+                    受信通知音
+                  </label>
+                
+                  <button onclick="previewReceiveSound()">
+                    ▶ プレビュー
+                  </button>
+                
+                  <br>
+                
+                  <label>
+                    音量
+                    <input 
+                      type="range" 
+                      id="receiveSoundVolume"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                    >
+                  </label>
+                </div>
+                <hr>
 
                 <button onclick="openDeleteModal()" style="background:#ff5555">
 
@@ -1126,7 +1149,8 @@ overflow-y:auto;
 
 
     </div>
-    <script>
+<script>
+
 
 
 
@@ -1172,6 +1196,26 @@ price:0
     price:0
 },
 {
+    name:"おやすみ",
+    url:"https://cdn.phototourl.com/free/2026-08-04-9faa8fc5-97e7-4a5f-9fd5-6fcba3d3af51.png",
+    price:0
+},
+{
+    name:"いいね！",
+    url:"https://cdn.phototourl.com/free/2026-08-04-bb0438c6-be88-4cb4-aae3-9895116d8430.png",
+    price:0
+},
+{
+    name:"どうしようかな？",
+    url:"https://cdn.phototourl.com/free/2026-08-04-b7638881-1bb2-4609-8c03-f293167a6cf4.png",
+    price:25
+},
+{
+    name:"がんばるぞ！",
+    url:"https://cdn.phototourl.com/free/2026-08-04-d24c5f0f-cf09-4c3e-9ccf-7eab807d0dd1.png",
+    price:25
+},
+{
 name:"ガリレオ",
 url:"https://cdn.phototourl.com/free/2026-08-02-02e07729-40f5-4ed5-8e8d-0b2bf7c54da6.png",
 price:50
@@ -1180,13 +1224,13 @@ price:50
 {
     name:"千空",
     url:"https://cdn.phototourl.com/free/2026-08-02-4398fd8b-37d8-469d-96db-c5ca819b25c2.png",
-    price:100
+    price:150
     
 },
 {
     name:"アーニャ",
     url:"https://cdn.phototourl.com/free/2026-08-03-781db54b-8485-40f5-8783-a637a4dd040b.png",
-    price:100
+    price:150
     
 }
 ];
@@ -1202,7 +1246,38 @@ price:50
                 SUPABASE_URL,
                 SUPABASE_ANON_KEY
             );
+        const receiveSound = new Audio(
+        "https://orangefreesounds.com/wp-content/uploads/2025/08/Alert-sms-tone.mp3"
+        );
+        
+        let soundEnabled=false,
+        soundVolume=0.5;
+        
+        receiveSound.volume = soundVolume;
 
+
+function playReceiveSound(){
+
+    if(!soundEnabled) return;
+
+    receiveSound.currentTime = 0;
+    receiveSound.volume = soundVolume;
+
+    receiveSound.play().catch(e=>{
+        console.log("通知音再生失敗:",e);
+    });
+}
+
+
+function previewReceiveSound(){
+
+    receiveSound.currentTime = 0;
+    receiveSound.volume = soundVolume;
+
+    receiveSound.play().catch(e=>{
+        console.log("プレビュー再生失敗:",e);
+    });
+}
         let imageData = null;
         const themes = {
 
@@ -1696,7 +1771,13 @@ price:50
                         `chanpro-dev/user/${devUid}`,
                         {qos:1}
                     );
-                
+                    const settingTopic =
+                        `chanpro-settings/user/${encodeURIComponent(userName)}`;
+                    
+                    client.subscribe(
+                        settingTopic,
+                        {qos:1}
+                    );                
                     console.log(
                         "通知履歴購読:",
                         developerHistoryTopic
@@ -1866,6 +1947,60 @@ price:50
 
                 return;
 
+            }
+            if(
+                topic ===
+                `chanpro-settings/user/${encodeURIComponent(userName)}`
+            ){
+            
+                try{
+            
+                    const settings =
+                        JSON.parse(message.toString());
+            
+            
+                    if(typeof settings.soundEnabled === "boolean"){
+                        soundEnabled = settings.soundEnabled;
+                    }
+                    else{
+                        soundEnabled=false;
+                    }            
+            
+                    if(typeof settings.soundVolume === "number"){
+                        soundVolume = settings.soundVolume;
+                        receiveSound.volume = soundVolume;
+                    }
+            
+            
+                    const toggle =
+                        document.getElementById("receiveSoundToggle");
+            
+                    if(toggle){
+                        toggle.checked = soundEnabled;
+                    }
+            
+            
+                    const volume =
+                        document.getElementById("receiveSoundVolume");
+            
+                    if(volume){
+                        volume.value = soundVolume;
+                    }
+            
+            
+                    console.log(
+                        "設定復元:",
+                        settings
+                    );
+            
+                }catch(e){
+                    console.log(
+                        "設定読み込み失敗",
+                        e
+                    );
+                }
+            
+                return;
             }
             // 開発者からの個別通知
             if(topic===`chanpro-dev/user/${clientId.replace("id-","")}`){
@@ -2275,21 +2410,19 @@ price:50
         // メッセージ受信
 
 function receiveMessage(data){
-    if(!data.msgId) return;
-    if(history[data.msgId]) return;
+    if(!data.msgId)return;
+    if(history[data.msgId])return;
 
-    history[data.msgId] = data;
+    history[data.msgId]=data;
 
-    const isMe = data.id === clientId;
+    const isMe=data.id===clientId;
 
-    addMsg(
-        data.name,
-        data.msg,
-        isMe,
-        data.time,
-        chat,
-        data.id
-    );
+    // 他人からのメッセージだけ通知音
+    if(!isMe){
+        playReceiveSound();
+    }
+
+    addMsg(data.name,data.msg,isMe,data.time,chat,data.id);
 }
 
 
@@ -3835,9 +3968,13 @@ async function addMsg(name,msg,isMe=false,time=Date.now(),container=chat,senderI
 
             userName = newName;
 
-            document.getElementById("profile")
-                .innerText =
-                `${userName} / ${userRoom}`;
+            userName=newName;
+            
+            document.getElementById("profile").innerText=
+            `${userName} / ${userRoom}`;
+            
+            saveUserSettings();
+            
             showChatNotify("ユーザー名を変更しました","システム通知");
 
         }
@@ -5088,8 +5225,59 @@ async function confirmBuyStamp(result){
 
     buyStampTarget = null;
 }
-    </script>
+function loadSoundSetting(){
 
-</body>
+ const toggle=document.getElementById("receiveSoundToggle");
+ const volume=document.getElementById("receiveSoundVolume");
 
+ toggle&&(toggle.checked=soundEnabled,
+ toggle.onchange=function(){
+
+   soundEnabled=this.checked;
+   saveUserSettings();
+
+ });
+
+
+ volume&&(volume.value=soundVolume,
+ volume.oninput=function(){
+
+   soundVolume=Number(this.value);
+   receiveSound.volume=soundVolume;
+   saveUserSettings();
+
+ });
+
+}
+function saveUserSettings(){
+
+    if(!client || !userName) return;
+
+    const settings = {
+        soundEnabled: soundEnabled,
+        soundVolume: soundVolume,
+        time: Date.now()
+    };
+
+    const topic =
+        `chanpro-settings/user/${encodeURIComponent(userName)}`;
+
+    client.publish(
+        topic,
+        JSON.stringify(settings),
+        {
+            qos:1,
+            retain:true
+        }
+    );
+
+    console.log("設定保存:", settings);
+}
+
+window.addEventListener(
+    "load",
+    loadSoundSetting
+);
+    
+</script>
 </html>
