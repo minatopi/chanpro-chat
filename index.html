@@ -811,7 +811,7 @@ z-index:999;
 
             <input id="setPassword" type="password" placeholder="パスワード">
 
-            <input id="setRoom" value="chanpro" placeholder="参加するチャット">
+            <input id="setRoom" value="room" placeholder="参加するチャット">
 
 
             <button onclick="createUser()">
@@ -1150,6 +1150,7 @@ overflow-y:auto;
 
     </div>
 <script>
+
 
 
 
@@ -4290,116 +4291,17 @@ ${point} / 100
             });
         
         } */
-        async function loadOrSyncHistory() {
-            // room以外はMQTT同期のみ
-            if (userRoom !== "room") {
-                historyLoaded = true;
-                historyLoading = false;
-
-                await new Promise(resolve => {
-                    let count = 0;
-                    const timer = setInterval(() => {
-                        count++;
-                        if (syncFinished || count >= 30) {
-                            clearInterval(timer);
-                            resolve();
-                        }
-                    }, 100);
-                });
-
-                pendingJoinMessages.forEach(data => {
-                    addMsg(
-                        "システム",
-                        `${data.name}さんが参加しました`,
-                        false,
-                        Date.now()
-                    );
-                });
-
-                pendingJoinMessages = [];
-                return;
-            }
-
-            // roomだけSupabase
-            requestSync();
-            await new Promise(resolve => {
-                let count = 0;
-                const timer = setInterval(() => {
-                    count++;
-                    if (syncFinished || count >= 30) {
-                        clearInterval(timer);
-                        resolve();
-                    }
-                }, 100);
-            });
-
-            if (Object.keys(history).length > 0) {
-                console.log("MQTT履歴あり");
-                return;
-            }
-
-            console.log("MQTT履歴なし Supabase確認");
-
-            const { data, error } = await supabaseClient
-                .from("room_chat_history")
-                .select("*")
-                .order("created_at", { ascending: true })
-                .order("id", { ascending: true })
-                .limit(1000);
-
-            if (error) {
-                console.log("履歴取得エラー", error);
-                requestSync();
-                return;
-            }
-
-            if (data && data.length > 0) {
-                console.log("Supabase履歴読み込み:", data.length);
-
-                for (const row of data) {
-                    const id = "history-" + row.id;
-                    const msg = {
-                        msgId: id,
-                        id: row.user_id,
-                        name: row.username,
-                        msg: row.message,
-                        time: new Date(row.created_at).getTime()
-                    };
-
-                    history[id] = msg;
-
-                    await addMsg(
-                        msg.name,
-                        msg.msg,
-                        msg.id === clientId,
-                        msg.time,
-                        chat,
-                        msg.id
-                    );
-                }
-                chat.scrollTop = chat.scrollHeight;
-            } else {
-                console.log("Supabase履歴なし MQTT同期");
-                requestSync();
-            }
-
-            console.log("MQTT同期用履歴:", Object.keys(history).length);
-            await messageQueue;
-
-            historyLoaded = true;
-            historyLoading = false;
-
-            for (const data of pendingJoinMessages) {
-                await addMsg(
-                    "システム",
-                    `${data.name}さんが参加しました`,
-                    false,
-                    Date.now()
-                );
-            }
-
-            pendingJoinMessages = [];
-        }
+async function loadOrSyncHistory(){
+  if("room"!==userRoom)return historyLoaded=!0,historyLoading=!1,await new Promise(resolve=>{let count=0;const timer=setInterval(()=>{count++,(syncFinished||count>=30)&&(clearInterval(timer),resolve())},100)}),pendingJoinMessages.forEach(data=>{addMsg("システム",`${data.name}さんが参加しました`,!1,Date.now())}),void(pendingJoinMessages=[]);
+  // room: MQTT Retain を履歴キャッシュとして利用。Supabase は最新 id で差分確認。
+  await new Promise(resolve=>{let count=0;const timer=setInterval(()=>{count++,(historyLoading===!1||count>=30)&&(clearInterval(timer),resolve())},100)});
+  await syncRoomHistoryFromSupabase();
+  await messageQueue;
+  historyLoaded=!0;
+  historyLoading=!1;
+  for(const data of pendingJoinMessages)await addMsg("システム",`${data.name}さんが参加しました`,!1,Date.now());
+  pendingJoinMessages=[];
+}
 function updatePointBar(point){
     const level=Math.floor(point/100)+1;
     const remain=point%100;
@@ -4871,44 +4773,32 @@ async function updatePointRank(){
     }
 }
 function saveRetainHistory(){
-
-    if(userRoom === "room") return;
-    if(!client) return;
-
-    const list = Object.values(history)
-        .sort((a,b)=>a.time-b.time)
-        .slice(-500);
-
-    client.publish(
-        `chanpro-chat/${userRoom}/history`,
-        JSON.stringify(list),
-        {
-            qos:1,
-            retain:true
-        }
-    );
-
-    console.log("Retain履歴保存", list.length);
+  if("room"===userRoom){
+    if(!client)return;
+    const list=Object.values(history).sort((a,b)=>a.time-b.time).slice(-500);
+    client.publish(`chanpro-chat/${userRoom}/history`,JSON.stringify({last_id:lastSyncedSupabaseId,messages:list}),{qos:1,retain:!0});
+    console.log("Room Retain履歴保存",list.length,"last_id:",lastSyncedSupabaseId);
+    return;
+  }
+  if(!client)return;
+  const list=Object.values(history).sort((a,b)=>a.time-b.time).slice(-500);
+  client.publish(`chanpro-chat/${userRoom}/history`,JSON.stringify(list),{qos:1,retain:!0}),console.log("Retain履歴保存",list.length);
 }
 function receiveRetainHistory(list){
-
-    if(userRoom === "room") return;
-    if(!Array.isArray(list)) return;
-    if(Object.keys(history).length > 0) return;
-
-    list.sort((a,b)=>a.time-b.time);
-
-    list.forEach(msg=>{
-        receiveMessage(msg);
-    });
-
-    historyLoading = false;
-
-    console.log("Retain履歴読込", list.length);
-    pendingJoinMessages.forEach(data=>{
-        addMsg("システム",`${data.name}さんが参加しました`,false,Date.now());
-    });
-    pendingJoinMessages = [];
+  if("room"===userRoom){
+    if(!list||typeof list!=="object"||!Array.isArray(list.messages))return;
+    if(Object.keys(history).length>0)return;
+    if(typeof list.last_id==="number")lastSyncedSupabaseId=Math.max(lastSyncedSupabaseId,list.last_id);
+    list.messages.sort((a,b)=>a.time-b.time).forEach(msg=>{receiveMessage(msg)});
+    historyLoading=!1;
+    console.log("Room Retain履歴読込",list.messages.length,"last_id:",lastSyncedSupabaseId);
+    pendingJoinMessages.forEach(d=>{addMsg("システム",`${d.name}さんが参加しました`,!1,Date.now())});
+    pendingJoinMessages=[];
+    return;
+  }
+  if(!Array.isArray(list))return;
+  if(Object.keys(history).length>0)return;
+  list.sort((a,b)=>a.time-b.time),list.forEach(msg=>{receiveMessage(msg)}),historyLoading=!1,console.log("Retain履歴読込",list.length),pendingJoinMessages.forEach(data=>{addMsg("システム",`${data.name}さんが参加しました`,!1,Date.now())}),pendingJoinMessages=[];
 }
 function saveDeveloperNotificationHistory() {
 
@@ -5223,10 +5113,45 @@ async function loadStampList(){
         stampList=[];
     }
 }
+// ---- 1. 変数追加 (既存の let 宣言エリアに置いてください) -------------------
+let lastSyncedSupabaseId = 0;
+
+// ---- 2. 新規関数: Supabase の最新 id を取得し、Retainキャッシュ以降の差分を取り込む ----
+async function syncRoomHistoryFromSupabase(){
+  if("room"!==userRoom)return;
+  // Supabase の最新 id を取得
+  const{data:latest,error:latestError}=await supabaseClient.from("room_chat_history").select("id").order("id",{ascending:!1}).limit(1).maybeSingle();
+  if(latestError){console.log("Supabase最新id取得失敗",latestError);return}
+  const supabaseMaxId=latest?latest.id:0;
+  if(supabaseMaxId<=lastSyncedSupabaseId){console.log("差分なし Supabase最新id:",supabaseMaxId,"同期済み:",lastSyncedSupabaseId);return}
+  console.log("差分取得: Supabase id >",lastSyncedSupabaseId,"最新:",supabaseMaxId);
+  // last_id 以降の差分を取得
+  const{data:diff,error:diffError}=await supabaseClient.from("room_chat_history").select("*").gt("id",lastSyncedSupabaseId).order("id",{ascending:!0}).limit(1e3);
+  if(diffError){console.log("差分取得エラー",diffError);return}
+  if(diff&&diff.length>0){
+    for(const row of diff){
+      const rowTime=new Date(row.created_at).getTime();
+      // Retainキャッシュ内のライブメッセージ(UUIDキー)と重複回避
+      const dup=Object.values(history).some(m=>m.name===row.username&&m.msg===row.message&&Math.abs((m.time||0)-rowTime)<5000);
+      if(dup)continue;
+      const id="history-"+row.id;
+      if(history[id])continue;
+      const msg={msgId:id,id:row.user_id,name:row.username,msg:row.message,time:rowTime};
+      history[id]=msg;
+      await addMsg(msg.name,msg.msg,msg.id===clientId,msg.time,chat,msg.id);
+    }
+    chat.scrollTop=chat.scrollHeight;
+  }
+  lastSyncedSupabaseId=supabaseMaxId;
+  // キャッシュを最新化して Retain に保存
+  saveRetainHistory();
+}
+
 window.addEventListener("load",async()=>{
     loadSoundSetting();
     await loadStampList();
 });
+    
     
 </script>
 </html>
