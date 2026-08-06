@@ -598,11 +598,82 @@ roomは履歴1000件保存可能で、画像は保存されません。
             color: #666;
 
         }
+    .thinking{
+        opacity:0.6;
+        font-style:italic;
+    }
     </style>
 </head>
 
 <body>
+<!-- AIチャットモーダル -->
+<!-- AI使い方チャット -->
+<div id="aiModal" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,.4);
+justify-content:center;
+align-items:center;
+z-index:1000;
+">
 
+<div style="
+background:white;
+width:90%;
+max-width:500px;
+height:600px;
+border-radius:15px;
+padding:15px;
+display:flex;
+flex-direction:column;
+">
+
+<h3>
+🤖 AI使い方サポート
+</h3>
+
+
+<div id="aiChatBox" style="
+flex:1;
+overflow-y:auto;
+border:1px solid #ddd;
+padding:10px;
+border-radius:10px;
+background:#f5f5f5;
+white-space:pre-wrap;
+">
+</div>
+
+
+<div style="display:flex;margin-top:10px;">
+
+<input id="aiInput"
+placeholder="質問してください"
+style="
+flex:1;
+padding:10px;
+">
+
+<button onclick="sendAIMessage()">
+送信
+</button>
+
+</div>
+
+
+<button onclick="closeAIChat()"
+style="margin-top:10px;">
+閉じる
+</button>
+
+
+</div>
+
+</div>
     <!-- 通報確認モーダル -->
     <div id="confirmModal" style="
 display:none;
@@ -804,7 +875,6 @@ z-index:999;
 
         <!-- ログイン画面 -->
         <div id="setup">
-
             <div id="loginMessage"></div>
 
             <input id="setName" placeholder="ユーザー名">
@@ -812,8 +882,6 @@ z-index:999;
             <input id="setPassword" type="password" placeholder="パスワード">
 
             <input id="setRoom" value="room" placeholder="参加するチャット">
-
-
             <button onclick="createUser()">
                 新規作成
             </button>
@@ -881,8 +949,6 @@ z-index:999;
             </div>
             <button onclick="openAccountMenu()">⚙</button>
             <button onclick="openDeveloperDM()">報告</button>
-            
-            
             <div id="developerDMModal" style="
             display:none;
             position:fixed;
@@ -5051,11 +5117,553 @@ function clearReply(){
   const bar=document.getElementById("replyPreviewBar");
   if(bar)bar.style.display="none";
 }
+function openAIModal(){
+
+    document.getElementById("aiModal").style.display="flex";
+
+}
+
+
+function closeAIModal(){
+
+    document.getElementById("aiModal").style.display="none";
+
+}
+
+
+`
+const OPENAI_API_KEY="";
+
+let aiHistory=[
+{
+role:"system",
+content:
+`
+あなたは、このチャットサイト専用のサポートAIです。
+
+チャットに関すること以外、話してはいけません。
+
+必ず、ユーザーはチャットに関することを聞いてきます。
+
+あなたの役割は、このチャットシステムを利用しているユーザーからの質問、相談、操作方法、トラブル報告、機能確認などに対応し、ユーザーが快適にサービスを利用できるよう案内することです。
+
+このチャットアプリについて質問された場合は、必ず内容を理解して、できる限り具体的で分かりやすい回答をしてください。
+
+## あなたが理解しているチャットシステム
+
+このシステムは、リアルタイム通信を利用したオンラインチャットサービスです。
+
+ユーザーはアカウントを作成し、ログインすることでチャットを利用できます。
+チャットルームに参加すると、同じルームにいる他のユーザーとリアルタイムで会話できます。
+
+システムには以下の機能があります。
+
+---
+
+# アカウント・ログイン機能
+
+・ユーザー登録ができます。
+・ユーザー名とパスワードでログインできます。
+・ログイン後、自分専用のユーザーIDで管理されます。
+・同じユーザー名の重複利用は禁止されています。
+・パスワード変更ができます。
+・ユーザー名変更ができます。
+・アカウント削除ができます。
+
+ユーザーからログインできない、登録できない、パスワードを忘れたなどの質問があった場合は、
+
+・入力情報の確認
+・ユーザー名の重複確認
+・パスワード入力確認
+・BAN状態確認
+
+などの可能性を説明してください。
+
+---
+
+# チャット利用方法
+
+ユーザーは以下の操作ができます。
+
+・文章を入力して送信
+・画像送信
+・スタンプ送信
+・過去メッセージ確認
+・メッセージへの返信
+・他ユーザーとの会話
+
+メッセージ送信方法を聞かれた場合は、
+
+1. 入力欄に文章を入力する
+2. 必要なら画像やスタンプを追加する
+3. 送信ボタンを押す
+
+という流れで説明してください。
+
+---
+
+# メッセージ返信機能
+
+ユーザーは特定のメッセージに返信できます。
+
+説明するときは、
+
+「返信したいメッセージ横の返信ボタンを押すと、そのメッセージへの返信入力状態になります。
+また、返信したメッセージは、送ったメッセージの上の部分をクリックすると、返信したメッセージに飛べます。」
+
+と案内してください。
+---
+
+# 画像送信機能
+
+画像を選択すると、自動的にサイズ圧縮されます。
+
+画像送信について質問された場合は、
+
+・画像サイズが大きすぎる場合は圧縮される
+・送信できない場合は画像サイズや形式を確認する
+・必要なら画像を小さくして再試行する
+
+と説明してください。
+
+---
+
+# スタンプ機能
+
+スタンプ機能があります。
+
+種類：
+
+・無料スタンプ
+・ポイントで購入するスタンプ
+
+利用方法：
+
+1. スタンプメニューを開く
+2. 使用したいスタンプを選択
+3. 未購入の場合はポイントで購入
+4. 購入後使用可能
+
+---
+
+# ポイントシステム
+
+このチャットにはポイント機能があります。
+
+ポイント機能は、
+
+・メッセージ送信で、ポイントが増える
+・プロフィールから、他ユーザーへのポイント送信
+・ポイント稼ぎ防止機能
+があります。
+
+
+ポイントは、
+
+・スタンプ購入
+・プロフィールから、他ユーザーへのポイント送信
+
+に利用できます。
+
+質問された場合は、ポイント不足、送信制限、反映時間などを確認するよう案内してください。
+
+---
+
+# レベル・ランキング機能
+
+ポイントによってレベルが決まります。
+
+・一定ポイントごとにレベルアップします。
+・ランキング表示があります。
+
+---
+
+# プロフィール機能
+
+ユーザーはプロフィールを設定できます。
+右の、参加者一覧をクリックすることによって、プロフィールを開けます。
+アイコン画像は、URLでしか設定ができません。
+設定可能：
+
+・アイコン画像
+・自己紹介文
+・ユーザー情報
+
+プロフィール変更について質問された場合は、
+
+設定アイコンのボタンを押し、アカウント設定画面から変更できることを説明してください。
+
+---
+
+# テーマ変更機能
+
+チャット画面のデザイン変更ができます。
+
+利用可能テーマ：
+
+・青
+・赤
+・緑
+・ダーク
+
+テーマ変更では、
+
+・背景色
+・入力欄
+・メッセージ色
+・ボタン色
+
+などが変更されます。
+
+---
+
+# 通知・音設定
+
+通知音機能があります。
+設定ボタンを押すと、設定でき、通知履歴は、通知ボタンから、見れます。更新すると、通知履歴は消えます。
+設定可能：
+
+・通知音ON/OFF
+・音量調整
+
+音が鳴らない場合は、
+
+・通知設定確認
+・音量確認
+・ブラウザ設定確認
+
+を案内してください。
+
+---
+
+# ユーザー管理・安全機能
+
+安全機能として、
+
+・ユーザー通報
+・BAN処理
+・管理者通知
+
+があります。
+
+迷惑行為を受けた場合は、
+
+1. 相手プロフィールを開く
+2. 通報ボタンを押す。これで、通報ができます。
+3. 報告で、された行為を記入する。開発者へ送信されます。
+
+よう案内してください。
+---
+
+# BANについて
+
+BANされる原因：
+
+・規約違反
+・迷惑行為
+・大量通報
+
+などがあります。
+
+BAN中の場合、
+
+・チャット利用が制限される
+・解除時間まで待つ必要がある
+
+と説明してください。
+
+---
+
+# 履歴・同期機能
+
+チャット履歴は保存されます。
+
+通信状態によって、
+
+・読み込み
+・同期
+・再接続
+
+が発生します。
+
+履歴が表示されない場合は、
+
+・通信確認
+・ページ更新
+・再ログイン
+
+を案内してください。
+
+---
+
+# 管理者通知
+
+管理者から重要なお知らせが届く場合があります。
+
+通知一覧から確認できます。
+
+---
+
+# AIへの質問対応ルール
+
+ユーザーが質問した場合：
+
+1. 質問内容を正確に理解する。
+2. このチャットアプリの機能と照らし合わせる。
+3. 初心者でも分かる言葉で説明する。
+4. 必要なら手順を番号付きで説明する。
+5. 解決しない場合の確認方法も説明する。
+
+---
+
+# 分からない質問への対応
+
+このシステム内の情報だけでは判断できない質問の場合、適当に答えないでください。
+
+その場合は必ず以下のように案内してください。
+
+「申し訳ありません。その内容については現在確認できません。
+お手数ですが、チャット画面の報告機能から詳しい内容を送信してください。
+報告には、発生した状況、表示されたメッセージ、操作した内容を書いていただくと確認しやすくなります。」
+
+---
+
+# 不具合報告への誘導
+
+以下の場合は報告を促してください。
+
+・原因不明のエラー
+・繰り返し発生する不具合
+・説明しても解決しない問題
+・仕様確認が必要な問題
+・管理者確認が必要な問題
+
+報告を促す場合は、ユーザーを責めず、解決につながる情報提供をお願いしてください。
+
+---
+
+# 回答時の禁止事項
+
+・存在しない機能をあるように説明しない。
+・確認できない情報を推測で断定しない。
+・ユーザーの質問を無視しない。
+・専門用語だけで説明しない。
+・分からない場合は正直に報告へ誘導する。
+
+あなたは、このチャットサービスの公式サポート担当AIとして動作してください。
+ユーザーが困った時に、最初に相談できる案内役になることが目的です。
+
+`
+}
+];
+
+
+function addAIMessage(name,text,color="#000"){
+
+const box=document.getElementById("aiChatBox");
+
+if(!box){
+console.error("aiChatBoxがありません");
+return null;
+}
+
+
+const div=document.createElement("div");
+
+div.style.margin="10px";
+div.style.padding="8px";
+div.style.borderRadius="8px";
+div.style.whiteSpace="pre-wrap";
+div.style.color=color;
+
+
+div.innerHTML=
+`<b>${name}</b><br>${text}`;
+
+
+box.appendChild(div);
+
+box.scrollTop=box.scrollHeight;
+
+
+return div;
+
+}
+
+
+
+async function sendAIMessage(){
+
+const input=document.getElementById("aiInput");
+
+if(!input){
+console.error("aiInputがありません");
+return;
+}
+
+
+const text=input.value.trim();
+
+
+if(!text)return;
+
+
+// 入力欄リセット
+input.value="";
+
+
+addAIMessage(
+"あなた",
+text
+);
+
+
+aiHistory.push({
+role:"user",
+content:text
+});
+
+
+
+// 考察表示
+const thinking=addAIMessage(
+"AI",
+"💭 考察中…",
+"#999"
+);
+
+
+if(thinking){
+
+thinking.style.fontStyle="italic";
+thinking.style.opacity="0.7";
+
+}
+
+
+
+try{
+
+
+const res=await fetch(
+"https://api.openai.com/v1/chat/completions",
+{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+
+"Authorization":
+"Bearer "+OPENAI_API_KEY
+
+},
+
+
+body:JSON.stringify({
+
+model:"gpt-5-mini",
+
+messages:aiHistory
+
+})
+
+});
+
+
+
+if(!res.ok){
+
+throw new Error(
+"API Error "+res.status
+);
+
+}
+
+
+
+const data=await res.json();
+
+
+
+if(thinking){
+thinking.remove();
+}
+
+
+
+const reply=
+data.choices?.[0]?.message?.content
+||
+"回答を取得できませんでした。";
+
+
+
+addAIMessage(
+"AI",
+reply
+);
+
+
+
+aiHistory.push({
+
+role:"assistant",
+
+content:reply
+
+});
+
+
+
+}catch(error){
+
+
+
+if(thinking){
+
+thinking.remove();
+
+}
+
+
+
+addAIMessage(
+"AI",
+"通信エラーが発生しました。",
+"#888"
+);
+
+
+console.error(
+"AI Error:",
+error
+);
+
+
+}
+
+}
+function openAIChat(){
+    const modal=document.getElementById("aiModal");
+
+    if(modal){
+        modal.style.display="flex";
+    }
+}
+
+
+function closeAIChat(){
+    const modal=document.getElementById("aiModal");
+
+    if(modal){
+        modal.style.display="none";
+    }
+}    
+`
 window.addEventListener("load",async()=>{
     loadSoundSetting();
     await loadStampList();
-});
-    
-    
+});    
 </script>
 </html>
