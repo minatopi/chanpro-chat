@@ -2342,21 +2342,13 @@ function previewReceiveSound(){
         // メッセージ受信
 
 function receiveMessage(data){
-    if(!data.msgId)return;
-    if(history[data.msgId])return;
-
-    history[data.msgId]=data;
-
-    const isMe=data.id===clientId;
-
-    // 他人からのメッセージだけ通知音
-    if(!isMe){
-        playReceiveSound();
-    }
-
-    addMsg(data.name,data.msg,isMe,data.time,chat,data.id);
+  if(!data.msgId)return;
+  if(history[data.msgId])return;
+  history[data.msgId]=data;
+  const isMe=data.id===clientId;
+  isMe||playReceiveSound(),
+  addMsg(data.name,data.msg,isMe,data.time,chat,data.id,data.msgId,data.replyTo)
 }
-
 
 
 
@@ -2481,117 +2473,24 @@ function receiveMessage(data){
 
 
         // 送信
-        async function sendMsg() {
-
-            const uid = clientId.replace("id-", "");
-
-            const { data, error } = await supabaseClient
-                .from("users")
-                .select("ban_until")
-                .eq("id", uid)
-                .maybeSingle();
-
-
-            console.log("BAN確認", uid, data);
-
-
-            if (error) {
-                console.log(error);
-                return;
-            }
-
-
-            if (data?.ban_until) {
-
-                const banTime = new Date(data.ban_until).getTime();
-
-                console.log(
-                    "BAN時間比較",
-                    banTime,
-                    Date.now(),
-                    banTime > Date.now()
-                );
-
-
-                if (banTime > Date.now()) {
-
-                    showChatNotify("BANされています",null);
-
-                    isBanned = true;
-
-
-                    const btn = document.getElementById("sendButton");
-                    if (btn) {
-                        btn.disabled = true;
-                    }
-
-
-                    return;   // ★ここで必ず終了
-                }
-            }
-
-
-
-            const e = document.getElementById("msg");
-
-            let t = e.value.trim();
-
-
-            if (!t && !imageData) return;
-
-
-            if (imageData) {
-                t += "\n" + imageData;
-            }
-
-
-            const n = {
-                msgId: crypto.randomUUID(),
-                id: clientId,
-                name: userName,
-                icon_url: myProfile.icon_url,
-                profile: myProfile.profile,
-                points: myProfile.points,
-                msg: t,
-                time: Date.now()
-            };
-
-
-            history[n.msgId] = n;
-
-
-            if (client) {
-
-                client.publish(
-                    `chanpro-chat/${userRoom}/msg`,
-                    JSON.stringify(n),
-                    { qos: 1 }
-                );
-
-            }
-            saveChatHistory(userName, clientId, t);
-
-            await addPoints(t);
-
-            addMsg(
-                userName,
-                t,
-                true,
-                n.time,
-                chat,
-                clientId
-            );
-
-
-            e.value = "";
-            imageData = null;
-
-            document.getElementById("imagePreview").innerHTML = "";
-            document.getElementById("imageInput").value = "";
-            if (Object.keys(members).length === 1) {
-                saveRetainHistory();
-            }
-        }
+async function sendMsg(){
+  const uid=clientId.replace("id-",""),{data:data,error:error}=await supabaseClient.from("users").select("ban_until").eq("id",uid).maybeSingle();
+  if(console.log("BAN確認",uid,data),error)return void console.log(error);
+  if(data?.ban_until){const banTime=new Date(data.ban_until).getTime();if(console.log("BAN時間比較",banTime,Date.now(),banTime>Date.now()),banTime>Date.now()){showChatNotify("BANされています",null),isBanned=!0;const btn=document.getElementById("sendButton");return void(btn&&(btn.disabled=!0))}}
+  const e=document.getElementById("msg");let t=e.value.trim();
+  if(!t&&!imageData)return;
+  imageData&&(t+="\n"+imageData);
+  const n={msgId:crypto.randomUUID(),id:clientId,name:userName,icon_url:myProfile.icon_url,profile:myProfile.profile,points:myProfile.points,msg:t,time:Date.now()};
+  if(replyTarget)n.replyTo={msgId:replyTarget.msgId,name:replyTarget.name,snippet:replyTarget.snippet};
+  history[n.msgId]=n,
+  client&&client.publish(`chanpro-chat/${userRoom}/msg`,JSON.stringify(n),{qos:1}),
+  saveChatHistory(userName,clientId,t),
+  await addPoints(t),
+  addMsg(userName,t,!0,n.time,chat,clientId,n.msgId,n.replyTo),
+  clearReply(),
+  e.value="",imageData=null,document.getElementById("imagePreview").innerHTML="",document.getElementById("imageInput").value="",
+  1===Object.keys(members).length&&saveRetainHistory()
+}
         // 同期要求
 
         function requestSync() {
@@ -2882,104 +2781,61 @@ async function getUserIcon(name, senderId=null){
 
         // 表示
 
-async function addMsg(name,msg,isMe=false,time=Date.now(),container=chat,senderId=null){
-
-            messageQueue = messageQueue.then(async () => {
-
-
-                const chat = document.getElementById("chat");
-
-                const div = document.createElement("div");
-
-                const t = new Date(time);
-
-                const dateStr =
-                    `${t.getFullYear()}/` +
-                    `${String(t.getMonth() + 1).padStart(2, "0")}/` +
-                    `${String(t.getDate()).padStart(2, "0")}`;
-
-                const tm =
-                    `${String(t.getHours()).padStart(2, "0")}:` +
-                    `${String(t.getMinutes()).padStart(2, "0")}`;
-
-                // 日付が変わったら日付区切りを表示
-                if (lastMessageDate !== dateStr) {
-
-                    lastMessageDate = dateStr;
-
-                    const dateDiv = document.createElement("div");
-                    dateDiv.className = "date-divider";
-
-                    const span = document.createElement("span");
-                    span.textContent = dateStr;
-
-                    dateDiv.appendChild(span);
-
-                    chat.appendChild(dateDiv);
-                }
-
-                if (name === "システム") {
-
-                    div.className = "system";
-                    div.textContent = `${msg} ${tm}`;
-
-                } else {
-
-                    const wrap = document.createElement("div");
-                    wrap.className = "message-wrap " + (isMe ? "me" : "");
-
-                    const box = document.createElement("div");
-                    box.className = "msg " + (isMe ? "me" : "");
-
-                    const theme = themes[currentTheme];
-
-                    if (theme) {
-                        box.style.background = isMe ? theme.me : theme.other;
-                        box.style.color = theme.text;
-                    }
-
-                    // アイコン
-                    const icon=document.createElement("img");
-                    icon.dataset.userid=senderId;
-                    icon.src="https://placehold.jp/40x40.png";
-                    
-                    getUserIcon(name,senderId).then(url=>{
-                        icon.src=url;
-                    });
-                    icon.style.width = "30px";
-                    icon.style.height = "30px";
-                    icon.style.borderRadius = "50%";
-                    icon.style.objectFit = "cover";
-                    icon.style.verticalAlign = "middle";
-                    icon.style.marginRight = "5px";
-
-                    icon.onerror = function () {
-                        this.src = "https://placehold.jp/40x40.png";
-                    };
-
-                    box.appendChild(icon);
-                    box.appendChild(document.createTextNode(name + "："));
-                    box.appendChild(createMessageContent(msg));
-
-                    const timeDiv = document.createElement("div");
-                    timeDiv.className = "time " + (isMe ? "me" : "other");
-                    timeDiv.textContent = tm;
-
-                    wrap.appendChild(box);
-                    wrap.appendChild(timeDiv);
-
-                    div.appendChild(wrap);
-                }
-                chat.appendChild(div);
-
-
-                if (container === chat) {
-                    chat.scrollTop = chat.scrollHeight;
-                }
-
-            });
-            return messageQueue;
-        }
+async function addMsg(name,msg,isMe=!1,time=Date.now(),container=chat,senderId=null,msgId=null,replyInfo=null){
+  return messageQueue=messageQueue.then(async()=>{
+    const chat=document.getElementById("chat"),div=document.createElement("div"),t=new Date(time),
+    dateStr=`${t.getFullYear()}/${String(t.getMonth()+1).padStart(2,"0")}/${String(t.getDate()).padStart(2,"0")}`,
+    tm=`${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}`;
+    if(lastMessageDate!==dateStr){lastMessageDate=dateStr;const dateDiv=document.createElement("div");dateDiv.className="date-divider";const span=document.createElement("span");span.textContent=dateStr,dateDiv.appendChild(span),chat.appendChild(dateDiv)}
+    if("システム"===name){
+      div.className="system",div.textContent=`${msg} ${tm}`
+    }else{
+      const wrap=document.createElement("div");
+      wrap.className="message-wrap "+(isMe?"me":"");
+      if(msgId){wrap.id="msg-"+msgId;wrap.dataset.msgid=msgId}
+      const box=document.createElement("div");
+      box.className="msg "+(isMe?"me":"");
+      const theme=themes[currentTheme];
+      theme&&(box.style.background=isMe?theme.me:theme.other,box.style.color=theme.text);
+      // 返信引用(相手/自分の元メッセージを示す)
+      if(replyInfo){
+        const quote=document.createElement("div");
+        const qColor=isMe?"#2e7d32":"#4a7dff";
+        quote.style.cssText="border-left:3px solid "+qColor+";padding:3px 8px;margin:0 0 5px;font-size:12px;cursor:pointer;border-radius:4px;max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#333";
+        quote.style.background=isMe?"#d6f5d6":"#dde8ff";
+        quote.textContent="↩ "+(replyInfo.name||"")+": "+(replyInfo.snippet||"");
+        quote.title="元のメッセージへ移動";
+        quote.onclick=function(){
+          const targetMsg=replyInfo.msgId?document.getElementById("msg-"+replyInfo.msgId):null;
+          if(targetMsg){
+            targetMsg.scrollIntoView({behavior:"smooth",block:"center"});
+            targetMsg.style.transition="box-shadow .4s";
+            targetMsg.style.boxShadow="0 0 0 3px #ffd54f";
+            setTimeout(()=>{targetMsg.style.boxShadow=""},1200)
+          }else showChatNotify("元のメッセージが見つかりません",null)
+        };
+        box.appendChild(quote)
+      }
+      const icon=document.createElement("img");
+      icon.dataset.userid=senderId,icon.src="https://placehold.jp/40x40.png",getUserIcon(name,senderId).then(url=>{icon.src=url}),
+      icon.style.width="30px",icon.style.height="30px",icon.style.borderRadius="50%",icon.style.objectFit="cover",icon.style.verticalAlign="middle",icon.style.marginRight="5px",
+      icon.onerror=function(){this.src="https://placehold.jp/40x40.png"},
+      box.appendChild(icon),box.appendChild(document.createTextNode(name+"：")),box.appendChild(createMessageContent(msg));
+      const timeDiv=document.createElement("div");
+      timeDiv.className="time "+(isMe?"me":"other");
+      // 返信ボタン
+      const replyBtn=document.createElement("span");
+      replyBtn.textContent="↩",replyBtn.title="返信";
+      replyBtn.style.cssText="cursor:pointer;margin-right:6px;font-size:13px;opacity:.55;vertical-align:middle";
+      replyBtn.onclick=function(ev){ev.stopPropagation();setReply(msgId,name,truncateForReply(msg))};
+      timeDiv.appendChild(replyBtn);
+      const timeSpan=document.createElement("span");timeSpan.textContent=tm;
+      timeDiv.appendChild(timeSpan);
+      wrap.appendChild(box),wrap.appendChild(timeDiv),div.appendChild(wrap)
+    }
+    chat.appendChild(div),container===chat&&(chat.scrollTop=chat.scrollHeight)
+  }),messageQueue
+}
 
 
 
@@ -5146,7 +5002,55 @@ async function syncRoomHistoryFromSupabase(){
   // キャッシュを最新化して Retain に保存
   saveRetainHistory();
 }
+// ---- 1. 変数追加 (let 宣言エリアへ) -----------------------------------------
+let replyTarget=null;
 
+// ---- 2. ヘルパー関数 (新規追加) ---------------------------------------------
+// 入力欄の上に表示する返信プレビュー枠(動的生成)
+function getReplyPreviewBar(){
+  let bar=document.getElementById("replyPreviewBar");
+  if(bar)return bar;
+  bar=document.createElement("div");
+  bar.id="replyPreviewBar";
+  bar.style.cssText="display:none;align-items:center;gap:8px;padding:6px 10px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px 8px 0 0;margin:0 0 6px;font-size:13px;color:#333";
+  const icon=document.createElement("span");icon.textContent="↩";icon.style.color="#4a7dff";icon.style.fontWeight="bold";
+  const text=document.createElement("span");text.id="replyPreviewText";
+  text.style.cssText="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis";
+  const cancel=document.createElement("button");cancel.textContent="×";
+  cancel.style.cssText="background:transparent;border:none;cursor:pointer;font-size:18px;color:#666;line-height:1;padding:0 4px";
+  cancel.onclick=clearReply;
+  bar.appendChild(icon),bar.appendChild(text),bar.appendChild(cancel);
+  const msgEl=document.getElementById("msg");
+  if(msgEl){
+    const row=msgEl.parentNode;
+    if(row&&row.parentNode)row.parentNode.insertBefore(bar,row);
+    else msgEl.parentNode.insertBefore(bar,msgEl);
+  }
+  return bar;
+}
+
+function truncateForReply(text){
+  let clean=text;
+  if(typeof removeImageAndUrl==="function")clean=removeImageAndUrl(text);
+  const arr=[...clean];
+  return arr.slice(0,30).join("")+(arr.length>30?"…":"");
+}
+
+function setReply(msgId,name,snippet){
+  replyTarget={msgId:msgId,name:name,snippet:snippet};
+  const bar=getReplyPreviewBar();
+  const txt=bar.querySelector("#replyPreviewText");
+  if(txt)txt.textContent=(name||"")+": "+(snippet||"");
+  bar.style.display="flex";
+  const msgEl=document.getElementById("msg");
+  if(msgEl)msgEl.focus();
+}
+
+function clearReply(){
+  replyTarget=null;
+  const bar=document.getElementById("replyPreviewBar");
+  if(bar)bar.style.display="none";
+}
 window.addEventListener("load",async()=>{
     loadSoundSetting();
     await loadStampList();
