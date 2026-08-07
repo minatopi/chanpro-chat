@@ -1,4 +1,3 @@
-
 <!-- 
 同じブラウザを開いている人と、連絡ができます。
 また、履歴も残ります。
@@ -949,7 +948,7 @@ z-index:999;
             ">
             </div>
             <button onclick="openAccountMenu()">⚙</button>
-            <button onclick="openDeveloperDM()">報告</button>
+            <button onclick="openDeveloperDM()">報告</button>     
             <div id="developerDMModal" style="
             display:none;
             position:fixed;
@@ -2093,34 +2092,31 @@ function previewReceiveSound(){
 
             }
             if (topic.endsWith("/point")) {
-
-                // 自分宛てだけ処理
+            
                 if (data.target !== clientId) return;
-
-
+            
+            
                 const uid = clientId.replace("id-", "");
-
-
-                // DBへ追加
+            
+                const sendAmount = Number(data.amount) || 0;
+            
+            
                 await supabaseClient.rpc(
                     "add_user_points",
                     {
                         userid: uid,
-                        amount: data.amount
+                        amount: sendAmount
                     }
                 );
-
-
-                // 表示ポイント更新
+            
+            
                 myProfile.points =
-                    (myProfile.points || 0)
-                    + data.amount;
-
-
+                    (myProfile.points || 0) + sendAmount;
+            
+            
                 updatePointBar(myProfile.points);
-
-
-                // 他人へ反映
+            
+            
                 client.publish(
                     `chanpro-chat/${userRoom}/presence`,
                     JSON.stringify({
@@ -2131,15 +2127,16 @@ function previewReceiveSound(){
                         points: myProfile.points,
                         time: Date.now()
                     }),
-                    { qos: 1 }
+                    { qos:1 }
                 );
-
-
+            
+            
                 showChatNotify(
                     data.fromName +
                     "さんから" +
-                    data.amount +
-                    "ポイントが送信されました","ポイント通知"
+                    sendAmount +
+                    "ポイントが送信されました",
+                    "ポイント通知"
                 );
             }
             if (topic.endsWith("/presence")) {
@@ -2551,7 +2548,13 @@ async function sendMsg(){
   if(replyTarget)n.replyTo={msgId:replyTarget.msgId,name:replyTarget.name,snippet:replyTarget.snippet};
   history[n.msgId]=n,
   client&&client.publish(`chanpro-chat/${userRoom}/msg`,JSON.stringify(n),{qos:1}),
-  saveChatHistory(userName,clientId,t),
+saveChatHistory(
+    userName,
+    clientId,
+    t,
+    n.msgId,
+    n.replyTo || null
+),
   await addPoints(t),
   addMsg(userName,t,!0,n.time,chat,clientId,n.msgId,n.replyTo),
   clearReply(),
@@ -4148,31 +4151,27 @@ ${point} / 100
             }
 
         }
-        async function saveChatHistory(name, id, msg) {
+async function saveChatHistory(
+    name,
+    id,
+    msg,
+    msgId,
+    replyTo = null
+){
+    if(userRoom !== "room") return;
 
-            // roomだけ保存
-            if (userRoom !== "room") return;
+    const text = msg.replace(/data:image\/[^\s]+/g,"").trim();
 
-            // Base64画像を削除
-            const text = msg
-                .replace(/data:image\/[^\s]+/g, "")
-                .trim();
-
-            // テキストが無ければ保存しない
-            if (!text) return;
-
-            const { error } = await supabaseClient
-                .from("room_chat_history")
-                .insert({
-                    username: name,
-                    user_id: id,
-                    message: text
-                });
-
-            if (error) {
-                console.log("履歴保存失敗", error);
-            }
-        }
+    await supabaseClient
+        .from("room_chat_history")
+        .insert({
+            username: name,
+            user_id: id,
+            message: text,
+            msg_id: msgId,
+            reply_to: replyTo
+        });
+}
         /* async function loadChatHistory(){
         
             if(userRoom !== "room") return;
@@ -4292,7 +4291,19 @@ async function givePoint() {
             // 自分の表示更新
             myProfile.points =
                 (myProfile.points || 0) + selfChange;
-
+            // 自分のポイントをDBへ保存
+            const { error: updateError } = await supabaseClient
+                .from("users")
+                .update({
+                    points: myProfile.points
+                })
+                .eq("id", uid);
+            
+            if (updateError) {
+                console.log(updateError);
+                showPointMessage("ポイント更新失敗");
+                return;
+            }
             updatePointBar(myProfile.points);
 
 
@@ -5057,10 +5068,17 @@ async function syncRoomHistoryFromSupabase(){
       // Retainキャッシュ内のライブメッセージ(UUIDキー)と重複回避
       const dup=Object.values(history).some(m=>m.name===row.username&&m.msg===row.message&&Math.abs((m.time||0)-rowTime)<5000);
       if(dup)continue;
-      const id="history-"+row.id;
+      history[msg.msgId] = msg;
       if(history[id])continue;
-      const msg={msgId:id,id:row.user_id,name:row.username,msg:row.message,time:rowTime};
       history[id]=msg;
+        const msg = {
+            msgId: row.msg_id,
+            id: row.user_id,
+            name: row.username,
+            msg: row.message,
+            time: rowTime,
+            replyTo: row.reply_to
+        };
       await addMsg(msg.name,msg.msg,msg.id===clientId,msg.time,chat,msg.id);
     }
     chat.scrollTop=chat.scrollHeight;
@@ -5102,7 +5120,7 @@ function truncateForReply(text){
   const arr=[...clean];
   return arr.slice(0,30).join("")+(arr.length>30?"…":"");
 }
-
+/* 
 function setReply(msgId,name,snippet){
   replyTarget={msgId:msgId,name:name,snippet:snippet};
   const bar=getReplyPreviewBar();
@@ -5112,7 +5130,32 @@ function setReply(msgId,name,snippet){
   const msgEl=document.getElementById("msg");
   if(msgEl)msgEl.focus();
 }
+ */
+function setReply(msgId, name, snippet){
+    replyTarget = {
+        msgId: msgId,
+        name: name,
+        snippet: snippet
+    };
 
+    const bar = getReplyPreviewBar();
+    const txt = bar.querySelector("#replyPreviewText");
+
+    if(txt){
+        const preview =
+            [...(snippet || "")].slice(0, 14).join("") +
+            ([...(snippet || "")].length > 14 ? "…" : "");
+
+        txt.textContent = (name || "") + ": " + preview;
+    }
+
+    bar.style.display = "flex";
+
+    const msgEl = document.getElementById("msg");
+    if(msgEl){
+        msgEl.focus();
+    }
+}
 function clearReply(){
   replyTarget=null;
   const bar=document.getElementById("replyPreviewBar");
@@ -5130,6 +5173,7 @@ function closeAIModal(){
     document.getElementById("aiModal").style.display="none";
 
 }
+
 
 
 const OPENAI_API_KEY="";
@@ -5452,7 +5496,7 @@ BAN中の場合、
 
 あなたは、このチャットサービスの公式サポート担当AIとして動作してください。
 ユーザーが困った時に、最初に相談できる案内役になることが目的です。
-    
+
 `
 }
 ];
@@ -5644,6 +5688,10 @@ error
 }
 
 }
+window.addEventListener("load",async()=>{
+    loadSoundSetting();
+    await loadStampList();
+});
 function openAIChat(){
     const modal=document.getElementById("aiModal");
 
@@ -5660,10 +5708,6 @@ function closeAIChat(){
         modal.style.display="none";
     }
 }    
-
-window.addEventListener("load",async()=>{
-    loadSoundSetting();
-    await loadStampList();
-});    
+    
 </script>
 </html>
