@@ -887,6 +887,7 @@ z-index:999;
             <input id="setPassword" type="password" placeholder="パスワード">
 
             <input id="setRoom" value="room" placeholder="参加するチャット">
+
             <button onclick="createUser()">
                 新規作成
             </button>
@@ -953,7 +954,7 @@ z-index:999;
             ">
             </div>
             <button onclick="openAccountMenu()">⚙</button>
-            <button onclick="openDeveloperDM()">報告</button>
+            <button onclick="openDeveloperDM()">報告</button>          
             <div id="developerDMModal" style="
             display:none;
             position:fixed;
@@ -5739,92 +5740,178 @@ function closeAIChat(){
         modal.style.display="none";
     }
 }    
-async function updateLoginStreak(userId){
+async function updateLoginStreak(userId) {
+    try {
+        const { data, error } = await supabaseClient
+            .from("users")
+            .select("login_streak, last_login_date, points")
+            .eq("id", userId)
+            .single();
 
-    const {data,error}=await supabaseClient
-        .from("users")
-        .select("login_streak,last_login_date,points")
-        .eq("id",userId)
-        .single();
-
-    if(error || !data)return;
-
-
-    const today=new Date();
-    const todayStr=today.toISOString().slice(0,10);
-
-    let streak=data.login_streak||0;
-    let bonusPoint=0;
-
-
-    // 連続ログイン週ボーナス
-    const weeks = Math.floor(streak / 7);
-    
-    if(weeks > 0 && streak % 7 === 0){
-    
-        const weekBonus = weeks * 10;
-    
-        bonusPoint += weekBonus;
-    
-        showChatNotify(
-            "🔥 "+streak+"日連続ログイン達成！ +" + weekBonus + "ポイント",
-            "連続ログインボーナス"
-        );
-    }
-
-
-    if(data.last_login_date){
-
-        const last=new Date(data.last_login_date);
-
-        const diff=Math.floor(
-            (today-last)/(1000*60*60*24)
-        );
-
-
-        if(diff===1){
-            streak++;
-        }
-        else{
-            streak=1;
+        if (error) {
+            console.error("連続ログイン情報取得失敗:", error);
+            return 0;
         }
 
-    }else{
+        if (!data) {
+            console.error("ユーザー情報がありません");
+            return 0;
+        }
 
-        streak=1;
+        // 今日の日付を YYYY-MM-DD で取得
+        const now = new Date();
+        const todayStr =
+            now.getFullYear() + "-" +
+            String(now.getMonth() + 1).padStart(2, "0") + "-" +
+            String(now.getDate()).padStart(2, "0");
 
-    }
+        const lastDate = data.last_login_date
+            ? String(data.last_login_date).slice(0, 10)
+            : null;
 
+        let streak = Number(data.login_streak) || 0;
+        let bonusPoint = 0;
 
-    const newPoints=(data.points||0)+bonusPoint;
+        // -----------------------------
+        // 今日すでにログイン済み
+        // -----------------------------
+        if (lastDate === todayStr) {
+            console.log("今日はすでにログイン済み:", todayStr);
 
+            const box = document.getElementById("loginStreak");
+            if (box) {
+                box.innerText = "連続ログイン " + streak + "日";
+            }
 
-    await supabaseClient
-        .from("users")
-        .update({
-            login_streak:streak,
-            last_login_date:todayStr,
-            points:newPoints
-        })
-        .eq("id",userId);
+            return streak;
+        }
 
+        // -----------------------------
+        // 初回ログイン
+        // -----------------------------
+        if (!lastDate) {
+            streak = 1;
+        } else {
+            const last = new Date(lastDate + "T00:00:00");
+            const today = new Date(todayStr + "T00:00:00");
 
-    if(bonusPoint>0){
+            const diffDays = Math.round(
+                (today - last) / 86400000
+            );
+
+            // 前日もログインしている
+            if (diffDays === 1) {
+                streak++;
+            } else {
+                // 1日以上空いたのでリセット
+                streak = 1;
+            }
+        }
+
+        // -----------------------------
+        // 毎日ログインボーナス +5P
+        // -----------------------------
+        const dailyBonus = 5;
+        bonusPoint += dailyBonus;
+
         showChatNotify(
-            "今日のログインボーナス 5ポイント",
+            "🎁 今日のログインボーナス +" +
+            dailyBonus +
+            "ポイント",
             "ログインボーナス"
         );
+
+        // -----------------------------
+        // 7日ごとの追加ボーナス +10P
+        // -----------------------------
+        if (streak % 7 === 0) {
+            const weeklyBonus = 10;
+            bonusPoint += weeklyBonus;
+
+            showChatNotify(
+                "🔥 " +
+                streak +
+                "日連続ログイン達成！ +" +
+                weeklyBonus +
+                "ポイント",
+                "連続ログインボーナス"
+            );
+        }
+
+        // -----------------------------
+        // ポイント計算
+        // -----------------------------
+        const currentPoints = Number(data.points) || 0;
+        const newPoints = currentPoints + bonusPoint;
+
+        // -----------------------------
+        // Supabaseへ保存
+        // -----------------------------
+        const { error: updateError } = await supabaseClient
+            .from("users")
+            .update({
+                login_streak: streak,
+                last_login_date: todayStr,
+                points: newPoints
+            })
+            .eq("id", userId);
+
+        if (updateError) {
+            console.error(
+                "連続ログイン情報更新失敗:",
+                updateError
+            );
+
+            showChatNotify(
+                "ログインボーナスの保存に失敗しました",
+                "エラー"
+            );
+
+            return streak;
+        }
+
+        // -----------------------------
+        // 自分のプロフィールポイントも更新
+        // -----------------------------
+        myProfile.points = newPoints;
+
+        // -----------------------------
+        // ポイントバー更新
+        // -----------------------------
+        if (typeof updatePointBar === "function") {
+            updatePointBar(newPoints);
+        }
+
+        // -----------------------------
+        // 連続ログイン表示
+        // -----------------------------
+        const box = document.getElementById("loginStreak");
+
+        if (box) {
+            box.innerText =
+                "連続ログイン " + streak + "日";
+        }
+
+        console.log("ログインボーナス付与成功:", {
+            userId: userId,
+            date: todayStr,
+            streak: streak,
+            dailyBonus: dailyBonus,
+            weeklyBonus: streak % 7 === 0 ? 10 : 0,
+            totalBonus: bonusPoint,
+            newPoints: newPoints
+        });
+
+        return streak;
+
+    } catch (error) {
+        console.error(
+            "updateLoginStreakでエラー:",
+            error
+        );
+
+        return 0;
     }
-
-
-    const box=document.getElementById("loginStreak");
-
-    if(box){
-        box.innerText="連続ログイン "+streak+"日";
-    }
-
-
-    return streak;
 }
 // ---- 1. 変数追加 (let 宣言エリアへ) -----------------------------------------
 let pins = {};
