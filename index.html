@@ -1,4 +1,6 @@
 <!-- 
+https://chanpro.jp/00-program-share-html?log=1785051002819x259741827058368500
+↑ポイントランキング
 同じブラウザを開いている人と、連絡ができます。
 また、履歴も残ります。
 
@@ -423,6 +425,11 @@ roomは履歴1000件保存可能で、画像は保存されません。
             margin-bottom: 3px;
         }
         #Rank {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 3px;
+        }
+        #loginStreak {
             font-size: 12px;
             color: #555;
             margin-bottom: 3px;
@@ -882,6 +889,7 @@ z-index:999;
             <input id="setPassword" type="password" placeholder="パスワード">
 
             <input id="setRoom" value="room" placeholder="参加するチャット">
+
             <button onclick="createUser()">
                 新規作成
             </button>
@@ -948,7 +956,7 @@ z-index:999;
             ">
             </div>
             <button onclick="openAccountMenu()">⚙</button>
-            <button onclick="openDeveloperDM()">報告</button>     
+            <button onclick="openDeveloperDM()">報告</button>          
             <div id="developerDMModal" style="
             display:none;
             position:fixed;
@@ -997,6 +1005,7 @@ z-index:999;
             <span id="profile"></span>
 
             <div id="pointBox">
+                <div id="loginStreak">連続日数習得中…</div>
                 <div id="Rank" style="width:200px; margin-bottom:5px;">順位習得中…</div>
                 <div id="pointText" style="width:200px; margin-bottom:5px;">
                     0 / 100
@@ -1610,7 +1619,7 @@ function previewReceiveSound(){
                 icon_url: data.icon_url || "",
                 profile: data.profile || ""
             };
-
+            const streak=await updateLoginStreak(data.id);
             showLoginMessage(
                 "ログイン成功",
                 "#22aa22"
@@ -3592,16 +3601,14 @@ async function addMsg(name,msg,isMe=!1,time=Date.now(),container=chat,senderId=n
 
 
 
-            showLoginMessage(
-
-                "ログイン成功",
-
-                "#22aa22"
-
-            );
-
-
-            return data.id;
+        const streak=await updateLoginStreak(data.id);
+        
+        showLoginMessage(
+            "ログイン成功",
+            "#22aa22"
+        );
+        
+        return data.id;
 
         }
 
@@ -5688,10 +5695,6 @@ error
 }
 
 }
-window.addEventListener("load",async()=>{
-    loadSoundSetting();
-    await loadStampList();
-});
 function openAIChat(){
     const modal=document.getElementById("aiModal");
 
@@ -5708,6 +5711,97 @@ function closeAIChat(){
         modal.style.display="none";
     }
 }    
+async function updateLoginStreak(userId){
+
+    const {data,error}=await supabaseClient
+        .from("users")
+        .select("login_streak,last_login_date,points")
+        .eq("id",userId)
+        .single();
+
+    if(error || !data)return;
+
+
+    const today=new Date();
+    const todayStr=today.toISOString().slice(0,10);
+
+    let streak=data.login_streak||0;
+    let bonusPoint=0;
+
+
+    // 連続ログイン週ボーナス
+    const weeks = Math.floor(streak / 7);
     
+    if(weeks > 0 && streak % 7 === 0){
+    
+        const weekBonus = weeks * 10;
+    
+        bonusPoint += weekBonus;
+    
+        showChatNotify(
+            "🔥 "+streak+"日連続ログイン達成！ +" + weekBonus + "ポイント",
+            "連続ログインボーナス"
+        );
+    }
+
+
+    if(data.last_login_date){
+
+        const last=new Date(data.last_login_date);
+
+        const diff=Math.floor(
+            (today-last)/(1000*60*60*24)
+        );
+
+
+        if(diff===1){
+            streak++;
+        }
+        else{
+            streak=1;
+        }
+
+    }else{
+
+        streak=1;
+
+    }
+
+
+    const newPoints=(data.points||0)+bonusPoint;
+
+
+    await supabaseClient
+        .from("users")
+        .update({
+            login_streak:streak,
+            last_login_date:todayStr,
+            points:newPoints
+        })
+        .eq("id",userId);
+
+
+    if(bonusPoint>0){
+        showChatNotify(
+            "今日のログインボーナス 5ポイント",
+            "ログインボーナス"
+        );
+    }
+
+
+    const box=document.getElementById("loginStreak");
+
+    if(box){
+        box.innerText="連続ログイン "+streak+"日";
+    }
+
+
+    return streak;
+}
+
+window.addEventListener("load",async()=>{
+    loadSoundSetting();
+    await loadStampList();
+});
 </script>
 </html>
