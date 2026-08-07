@@ -1,6 +1,4 @@
 <!-- 
-https://chanpro.jp/00-program-share-html?log=1785051002819x259741827058368500
-↑ポイントランキング
 同じブラウザを開いている人と、連絡ができます。
 また、履歴も残ります。
 
@@ -889,7 +887,6 @@ z-index:999;
             <input id="setPassword" type="password" placeholder="パスワード">
 
             <input id="setRoom" value="room" placeholder="参加するチャット">
-
             <button onclick="createUser()">
                 新規作成
             </button>
@@ -956,7 +953,7 @@ z-index:999;
             ">
             </div>
             <button onclick="openAccountMenu()">⚙</button>
-            <button onclick="openDeveloperDM()">報告</button>          
+            <button onclick="openDeveloperDM()">報告</button>
             <div id="developerDMModal" style="
             display:none;
             position:fixed;
@@ -2360,6 +2357,7 @@ function previewReceiveSound(){
                 receiveRetainHistory(data);
                 return;
             }
+            if (topic.endsWith("/pins")) return receiveRetainPins(JSON.parse(message.toString()));
             if(developerHistoryTopic && topic===developerHistoryTopic){
             
                 const list=JSON.parse(message.toString());
@@ -2876,7 +2874,6 @@ async function addMsg(name,msg,isMe=!1,time=Date.now(),container=chat,senderId=n
       box.className="msg "+(isMe?"me":"");
       const theme=themes[currentTheme];
       theme&&(box.style.background=isMe?theme.me:theme.other,box.style.color=theme.text);
-      // 返信引用(相手/自分の元メッセージを示す)
       if(replyInfo){
         const quote=document.createElement("div");
         const qColor=isMe?"#2e7d32":"#4a7dff";
@@ -2886,12 +2883,8 @@ async function addMsg(name,msg,isMe=!1,time=Date.now(),container=chat,senderId=n
         quote.title="元のメッセージへ移動";
         quote.onclick=function(){
           const targetMsg=replyInfo.msgId?document.getElementById("msg-"+replyInfo.msgId):null;
-          if(targetMsg){
-            targetMsg.scrollIntoView({behavior:"smooth",block:"center"});
-            targetMsg.style.transition="box-shadow .4s";
-            targetMsg.style.boxShadow="0 0 0 3px #ffd54f";
-            setTimeout(()=>{targetMsg.style.boxShadow=""},1200)
-          }else showChatNotify("元のメッセージが見つかりません",null)
+          if(targetMsg){targetMsg.scrollIntoView({behavior:"smooth",block:"center"});targetMsg.style.transition="box-shadow .4s";targetMsg.style.boxShadow="0 0 0 3px #ffd54f";setTimeout(()=>{targetMsg.style.boxShadow=""},1200)}
+          else showChatNotify("元のメッセージが見つかりません",null)
         };
         box.appendChild(quote)
       }
@@ -2902,12 +2895,24 @@ async function addMsg(name,msg,isMe=!1,time=Date.now(),container=chat,senderId=n
       box.appendChild(icon),box.appendChild(document.createTextNode(name+"：")),box.appendChild(createMessageContent(msg));
       const timeDiv=document.createElement("div");
       timeDiv.className="time "+(isMe?"me":"other");
-      // 返信ボタン
+      // ↩ 返信ボタン
       const replyBtn=document.createElement("span");
       replyBtn.textContent="↩",replyBtn.title="返信";
       replyBtn.style.cssText="cursor:pointer;margin-right:6px;font-size:13px;opacity:.55;vertical-align:middle";
+/* setReply(
+    msgId,
+    name,
+    truncateForReplyReply(msg)
+); */
       replyBtn.onclick=function(ev){ev.stopPropagation();setReply(msgId,name,truncateForReply(msg))};
       timeDiv.appendChild(replyBtn);
+      // 📌 ピン留めボタン
+      const pinned=msgId&&pins[msgId];
+      const pinBtn=document.createElement("span");
+      pinBtn.className="pinBtn";pinBtn.textContent="📌";pinBtn.title="ピン留め";
+      pinBtn.style.cssText="cursor:pointer;margin-right:6px;font-size:13px;opacity:"+(pinned?"1":".55")+";vertical-align:middle"+(pinned?";color:#e67e22":"");
+      pinBtn.onclick=function(ev){ev.stopPropagation();togglePin(msgId,name,msg)};
+      timeDiv.appendChild(pinBtn);
       const timeSpan=document.createElement("span");timeSpan.textContent=tm;
       timeDiv.appendChild(timeSpan);
       wrap.appendChild(box),wrap.appendChild(timeDiv),div.appendChild(wrap)
@@ -5122,10 +5127,33 @@ function getReplyPreviewBar(){
 }
 
 function truncateForReply(text){
-  let clean=text;
-  if(typeof removeImageAndUrl==="function")clean=removeImageAndUrl(text);
-  const arr=[...clean];
-  return arr.slice(0,30).join("")+(arr.length>30?"…":"");
+
+    if(!text)
+        return "";
+
+
+    // スタンプURL判定
+    if(
+        /https:\/\/cdn\.phototourl\.com\/free\//.test(text)
+    ){
+        return "[スタンプ]";
+    }
+
+
+    // 通常URLは残す
+
+
+    if(text.length > 50){
+
+        text =
+            text.substring(0,50)
+            + "...";
+
+    }
+
+
+    return text.trim();
+
 }
 /* 
 function setReply(msgId,name,snippet){
@@ -5798,7 +5826,100 @@ async function updateLoginStreak(userId){
 
     return streak;
 }
+// ---- 1. 変数追加 (let 宣言エリアへ) -----------------------------------------
+let pins = {};
 
+// ---- 2. 新規関数 ------------------------------------------------------------
+// ピン一覧パネル(チャット上部に動的生成)
+function getPinsPanel(){
+  let panel=document.getElementById("pinsPanel");
+  if(panel)return panel;
+  panel=document.createElement("div");
+  panel.id="pinsPanel";
+  panel.style.cssText="display:none;background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;margin:0 0 8px;font-size:13px;color:#7a5c00;overflow:hidden";
+  const header=document.createElement("div");
+  header.id="pinsHeader";
+  header.style.cssText="display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;font-weight:bold";
+  header.onclick=function(){const b=document.getElementById("pinsBody");b&&(b.style.display=b.style.display==="none"?"block":"none")};
+  panel.appendChild(header);
+  const body=document.createElement("div");
+  body.id="pinsBody";
+  body.style.cssText="display:none;padding:0 10px 8px;border-top:1px solid #ffe58f";
+  panel.appendChild(body);
+  const chat=document.getElementById("chat");
+  if(chat&&chat.parentNode)chat.parentNode.insertBefore(panel,chat);
+  return panel;
+}
+
+function renderPins(){
+  const panel=getPinsPanel();
+  const header=document.getElementById("pinsHeader");
+  const body=document.getElementById("pinsBody");
+  const ids=Object.keys(pins);
+  header.textContent="📌 ピン留め: "+ids.length+"件 (クリックで展開)";
+  if(ids.length===0){panel.style.display="none";body.innerHTML="";syncPinButtons();return}
+  panel.style.display="block";
+  body.innerHTML="";
+  ids.sort((a,b)=>(pins[b].pinnedAt||0)-(pins[a].pinnedAt||0)).forEach(msgId=>{
+    const p=pins[msgId];
+    const row=document.createElement("div");
+    row.style.cssText="padding:5px 0;border-bottom:1px dashed #ffe58f";
+    const uns=document.createElement("span");
+    uns.textContent="✕";
+    uns.style.cssText="float:right;color:#b00020;cursor:pointer;font-weight:bold;margin-left:6px";
+    uns.onclick=function(ev){ev.stopPropagation();togglePin(msgId,p.name,p.raw||"",p.time)};
+    const line=document.createElement("div");
+    line.style.cssText="font-weight:bold;color:#594100;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
+    line.textContent=(p.name||"")+":";
+    const txt=document.createElement("div");
+    txt.style.cssText="color:#5a4a00;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
+    txt.textContent=p.text||"";
+    row.appendChild(uns);row.appendChild(line);row.appendChild(txt);
+    row.onclick=function(){
+      const target=document.getElementById("msg-"+msgId);
+      if(target){target.scrollIntoView({behavior:"smooth",block:"center"});target.style.transition="box-shadow .4s";target.style.boxShadow="0 0 0 3px #ffd54f";setTimeout(()=>{target.style.boxShadow=""},1200)}
+      else showChatNotify("元のメッセージが見つかりません",null)
+    };
+    body.appendChild(row)
+  });
+  syncPinButtons();
+}
+
+// 全メッセージのピンボタン表示を現在の pins 状態に合わせる
+function syncPinButtons(){
+  document.querySelectorAll(".pinBtn").forEach(btn=>{
+    const wrap=btn.closest(".message-wrap");
+    if(!wrap)return;
+    const mid=wrap.dataset.msgid;
+    const pinned=!!(mid&&pins[mid]);
+    btn.style.color=pinned?"#e67e22":"";
+    btn.style.opacity=pinned?"1":".55";
+  });
+}
+
+function savePinsRetain(){
+  if(!client)return;
+  const arr=Object.values(pins);
+  client.publish(`chanpro-chat/${userRoom}/pins`,JSON.stringify(arr),{qos:1,retain:!0});
+}
+
+// Retainで届いたピン一覧を受信(更新後の復元)
+function receiveRetainPins(list){
+  pins={};
+  if(Array.isArray(list))list.forEach(p=>{if(p&&p.msgId)pins[p.msgId]=p});
+  renderPins();
+}
+
+function togglePin(msgId,name,rawText,time){
+  if(!msgId)return;
+  if(pins[msgId]){
+    delete pins[msgId];
+  }else{
+    pins[msgId]={msgId:msgId,name:name,text:truncateForReply(rawText),raw:truncateForReply(rawText),time:time||Date.now(),pinnedBy:userName,pinnedAt:Date.now()};
+  }
+  savePinsRetain();
+  renderPins();
+}
 window.addEventListener("load",async()=>{
     loadSoundSetting();
     await loadStampList();
