@@ -3291,15 +3291,23 @@ async function addMsg(
                 "msg " +
                 (isMe ? "me" : "");
 
-            const theme = themes[currentTheme];
-
-            if (theme) {
-                box.style.background =
-                    isMe ? theme.me : theme.other;
-
-                box.style.color =
-                    theme.text;
-            }
+            const rootStyle =
+                getComputedStyle(document.documentElement);
+            
+            const meColor =
+                rootStyle.getPropertyValue("--me-msg-bg").trim();
+            
+            const otherColor =
+                rootStyle.getPropertyValue("--other-msg-bg").trim();
+            
+            const textColor =
+                rootStyle.getPropertyValue("--text-color").trim();
+            
+            box.style.background =
+                isMe ? meColor : otherColor;
+            
+            box.style.color =
+                textColor;
 
             // ========================================
             // 返信引用
@@ -7855,6 +7863,7 @@ function searchChatRooms(keyword) {
 
 
 
+
 window.addEventListener("load", async () => {
     loadSoundSetting();
 
@@ -7889,6 +7898,14 @@ window.addEventListener("load", async () => {
         msgInput.addEventListener("keydown", event => {
             if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
+
+                const sendButton = document.getElementById("sendButton");
+
+                // BAN中、または送信ボタンが無効なら送信しない
+                if (isBanned || sendButton?.disabled) {
+                    return;
+                }
+
                 sendMsg();
             }
         });
