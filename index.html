@@ -1,4 +1,9 @@
 <!-- 
+https://chanpro.jp/00-program-share-html?log=1785051002819x259741827058368500
+↑ポイントのランキング表
+
+連続ログイン、8/7から開始
+
 同じブラウザを開いている人と、連絡ができます。
 また、履歴も残ります。
 
@@ -453,20 +458,127 @@ roomは履歴1000件保存可能で、画像は保存されません。
             position: relative;
         }
 
-        :root {
-            --theme-color: #5dade2;
-            --account-color: #e74c3c;
-            --profile-color: #3498db;
+:root {
+    --theme-color: #4a7dff;
 
-            --notify-color: #4a7dff;
-        }
+    --body-bg: #eef0f3;
+    --panel-bg: #ffffff;
+    --input-bg: #ffffff;
 
-        body.dark {
-            --profile-color: #8ab4f8;
-            --account-color: #8b0000;
+    --text-color: #000000;
+    --sub-text-color: #666666;
+    --border-color: #dddddd;
 
-            --notify-color: #8b0000;
-        }
+    --me-msg-bg: #d9ffd9;
+    --other-msg-bg: #e8f1ff;
+
+    --button-bg: #4a7dff;
+    --button-text: #ffffff;
+
+    --modal-bg: #ffffff;
+
+    --notification-bg: rgba(74,125,255,.92);
+
+    --reply-bg: #eef2ff;
+    --reply-border: #c7d2fe;
+
+    --pin-bg: #fffbe6;
+    --pin-border: #ffe58f;
+    --pin-text: #7a5c00;
+
+    --date-bg: #d9d9d9;
+    --date-text: #555555;
+
+    --hover-bg: #f2f2f2;
+}
+
+body.red {
+    --theme-color: #ff6666;
+
+    --body-bg: #fff0f0;
+    --panel-bg: #fffafa;
+    --input-bg: #fffafa;
+
+    --text-color: #333333;
+    --sub-text-color: #777777;
+    --border-color: #e5cccc;
+
+    --me-msg-bg: #ffe0e0;
+    --other-msg-bg: #ffeaea;
+
+    --button-bg: #ff6666;
+
+    --reply-bg: #fff0f0;
+    --reply-border: #ffb3b3;
+
+    --notification-bg: rgba(220,50,50,.92);
+
+    --date-bg: #f0d0d0;
+    --date-text: #774444;
+
+    --hover-bg: #fff0f0;
+}
+
+body.green {
+    --theme-color: #45b85a;
+
+    --body-bg: #f0fff2;
+    --panel-bg: #fbfffc;
+    --input-bg: #fbfffc;
+
+    --text-color: #333333;
+    --sub-text-color: #666666;
+    --border-color: #cde6d2;
+
+    --me-msg-bg: #dcffe0;
+    --other-msg-bg: #eaffed;
+
+    --button-bg: #45b85a;
+
+    --reply-bg: #effff2;
+    --reply-border: #b7dfbe;
+
+    --notification-bg: rgba(40,160,70,.92);
+
+    --date-bg: #d8eadb;
+    --date-text: #45634a;
+
+    --hover-bg: #effff2;
+}
+
+    body.dark {
+        --theme-color: #666666;
+    
+        --body-bg: #202124;
+        --panel-bg: #303134;
+        --input-bg: #3c4043;
+    
+        --text-color: #ffffff;
+        --sub-text-color: #bbbbbb;
+        --border-color: #555555;
+    
+        --me-msg-bg: #355d3b;
+        --other-msg-bg: #44475a;
+    
+        --button-bg: #666666;
+        --button-text: #ffffff;
+    
+        --modal-bg: #303134;
+    
+        --notification-bg: rgba(50,50,50,.95);
+    
+        --reply-bg: #383b46;
+        --reply-border: #666b7a;
+    
+        --pin-bg: #3b3726;
+        --pin-border: #665d35;
+        --pin-text: #f0d879;
+    
+        --date-bg: #444444;
+        --date-text: #cccccc;
+    
+        --hover-bg: #3a3b3d;
+    }
 
 
         #chatNotify {
@@ -607,6 +719,116 @@ roomは履歴1000件保存可能で、画像は保存されません。
         opacity:0.6;
         font-style:italic;
     }
+body {
+    background: var(--body-bg);
+    color: var(--text-color);
+}
+
+#chat,
+#memberPanel,
+#accountMenu,
+#developerNotificationBox,
+#themeMenu,
+#profileModal > div,
+#confirmModal > div,
+#buyStampModal > div,
+#deleteModal > div,
+#aiModal > div,
+#developerDMModal > div {
+    background: var(--panel-bg) !important;
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+input,
+textarea,
+select {
+    background: var(--input-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--sub-text-color);
+}
+
+button {
+    background: var(--button-bg);
+    color: var(--button-text);
+}
+
+button:disabled {
+    background: #888;
+}
+
+.msg {
+    color: var(--text-color);
+}
+
+.time {
+    color: var(--sub-text-color);
+}
+
+.system {
+    color: var(--sub-text-color);
+}
+
+.date-divider span {
+    background: var(--date-bg);
+    color: var(--date-text);
+}
+
+.profile-level,
+.profile-point-text,
+#pointText,
+#Rank,
+#loginStreak {
+    color: var(--sub-text-color);
+}
+
+#pointBarBg,
+.profile-bar-bg {
+    background: var(--border-color);
+    border-color: var(--border-color);
+}
+
+#pointBar,
+.profile-bar {
+    background: linear-gradient(
+        90deg,
+        var(--theme-color),
+        color-mix(in srgb, var(--theme-color) 60%, white)
+    );
+}
+
+#replyPreviewBar {
+    background: var(--reply-bg) !important;
+    border-color: var(--reply-border) !important;
+    color: var(--text-color) !important;
+}
+
+#pinsPanel {
+    background: var(--pin-bg) !important;
+    border-color: var(--pin-border) !important;
+    color: var(--pin-text) !important;
+}
+
+#pinsHeader,
+#pinsBody {
+    color: var(--pin-text) !important;
+    border-color: var(--pin-border) !important;
+}
+
+.chat-notify {
+    background: var(--notification-bg);
+}
+
+#pointMessage,
+#givePointMax,
+#loginMessage {
+    color: var(--sub-text-color);
+}
     </style>
 </head>
 
@@ -914,7 +1136,7 @@ z-index:999;
             <div id="notificationArea" style="position:relative;display:inline-block;">
             
             <button onclick="showDeveloperNotifications()">
-            🔔 通知
+            通知
             </button>
             
             <div id="developerNotificationBox"
@@ -954,7 +1176,7 @@ z-index:999;
             ">
             </div>
             <button onclick="openAccountMenu()">⚙</button>
-            <button onclick="openDeveloperDM()">報告</button>          
+            <button onclick="openDeveloperDM()">報告</button>     
             <div id="developerDMModal" style="
             display:none;
             position:fixed;
@@ -1139,7 +1361,7 @@ gap:5px;
                         ＋
                     </button>
 <button onclick="openStampMenu()">
-😑
+☺︎
 </button>
 
 <div id="stampMenu"
@@ -1188,7 +1410,7 @@ overflow-y:auto;
 
                     <button id="sendButton" onclick="sendMsg()" disabled>
 
-                        送信
+                        ➤
 
                     </button>
                 </div>
@@ -1284,205 +1506,165 @@ function previewReceiveSound(){
     });
 }
         let imageData = null;
-        const themes = {
+const themes = {
+    blue: {},
+    green: {},
+    red: {},
+    dark: {}
+};
 
-            blue: {
-                body: "#eef0f3",
-                panel: "#ffffff",
-                input: "#ffffff",
-                me: "#d9ffd9",
-                other: "#e8f1ff",
-                button: "#4a7dff",
-                text: "#000000"
-            },
+let currentTheme = "blue";
 
+function changeTheme(type) {
+    if (!themes[type]) return;
 
-            red: {
-                body: "#fff0f0",
-                panel: "#fffafa",
-                input: "#fffafa",
-                me: "#ffe0e0",
-                other: "#ffeaea",
-                button: "#ff6666",
-                text: "#333333"
-            },
+    currentTheme = type;
 
+    // 一旦テーマクラスを全部削除
+    document.body.classList.remove(
+        "blue",
+        "green",
+        "red",
+        "dark"
+    );
 
-            green: {
-                body: "#f0fff2",
-                panel: "#fbfffc",
-                input: "#fbfffc",
-                me: "#dcffe0",
-                other: "#eaffed",
-                button: "#45b85a",
-                text: "#333333"
-            },
+    // 新しいテーマを付与
+    document.body.classList.add(type);
 
+    // CSS変数を確実に更新
+    const root = document.documentElement;
 
-            dark: {
-                body: "#202124",
-                panel: "#303134",
-                input: "#3c4043",
-                me: "#355d3b",
-                other: "#44475a",
-                button: "#666666",
-                text: "#ffffff"
-            }
+    const colors = {
+        blue: {
+            theme: "#4a7dff",
+            body: "#eef0f3",
+            panel: "#ffffff",
+            input: "#ffffff",
+            text: "#000000",
+            subText: "#666666",
+            border: "#dddddd",
+            me: "#d9ffd9",
+            other: "#e8f1ff",
+            button: "#4a7dff",
+            reply: "#eef2ff",
+            replyBorder: "#c7d2fe",
+            notify: "rgba(74,125,255,.92)"
+        },
 
-        };
-        let currentTheme = "blue";
+        green: {
+            theme: "#45b85a",
+            body: "#f0fff2",
+            panel: "#fbfffc",
+            input: "#fbfffc",
+            text: "#333333",
+            subText: "#666666",
+            border: "#cde6d2",
+            me: "#dcffe0",
+            other: "#eaffed",
+            button: "#45b85a",
+            reply: "#effff2",
+            replyBorder: "#b7dfbe",
+            notify: "rgba(40,160,70,.92)"
+        },
 
+        red: {
+            theme: "#ff6666",
+            body: "#fff0f0",
+            panel: "#fffafa",
+            input: "#fffafa",
+            text: "#333333",
+            subText: "#777777",
+            border: "#e5cccc",
+            me: "#ffe0e0",
+            other: "#ffeaea",
+            button: "#ff6666",
+            reply: "#fff0f0",
+            replyBorder: "#ffb3b3",
+            notify: "rgba(220,50,50,.92)"
+        },
 
-        function changeTheme(type) {
-
-            if (!themes[type]) return;
-
-            currentTheme = type;
-
-            const t = themes[type];
-
-
-            // 背景
-            document.body.style.background = t.body;
-
-
-            // チャット
-            const chatBox = document.getElementById("chat");
-            if (chatBox) {
-                chatBox.style.background = t.panel;
-            }
-
-
-            // 参加者パネル
-            const panel = document.getElementById("memberPanel");
-            if (panel) {
-                panel.style.background = t.panel;
-                panel.style.color = t.text;
-            }
-
-
-            // 入力欄
-            [
-                "msg",
-                "setName",
-                "setPassword",
-                "setRoom"
-            ].forEach(id => {
-
-                const input = document.getElementById(id);
-
-                if (input) {
-
-                    input.style.background = t.input;
-                    input.style.color = t.text;
-                    input.style.borderColor =
-                        type === "dark" ? "#666" : "#ccc";
-
-                }
-
-            });
-
-
-            // 既存メッセージ
-            document.querySelectorAll(".msg").forEach(e => {
-
-                if (e.classList.contains("me")) {
-                    e.style.background = t.me;
-                } else {
-                    e.style.background = t.other;
-                }
-
-                e.style.color = t.text;
-
-            });
-
-
-
-            // 時間表示
-            document.querySelectorAll(".time").forEach(e => {
-                e.style.color =
-                    type === "dark" ? "#bbbbbb" : "#999999";
-            });
-
-
-
-            // システムメッセージ
-            document.querySelectorAll(".system").forEach(e => {
-                e.style.color =
-                    type === "dark" ? "#bbbbbb" : "#777777";
-            });
-
-
-
-            // ボタン
-            document.querySelectorAll("button").forEach(e => {
-
-                // テーマ選択ボタンは変更しない
-                if (e.classList.contains("theme"))
-                    return;
-
-
-                // 送信ボタン
-                if (e.id === "sendButton") {
-
-                    // ダーク時は藍色固定
-                    if (type === "dark") {
-                        e.style.background = "#3949ab";
-                    } else {
-                        e.style.background = t.button;
-                    }
-
-                    return;
-                }
-
-
-                e.style.background = t.button;
-
-            });
-
-
-
-            // 参加者リスト
-            document.querySelectorAll("#memberList li").forEach(e => {
-                e.style.color = t.text;
-
-                if (type === "dark") {
-                    e.style.borderColor = "#555";
-                } else {
-                    e.style.borderColor = "#eee";
-                }
-            });
-
-
-
-            // メニュー
-            const menu = document.getElementById("themeMenu");
-
-            if (menu) {
-                menu.style.background =
-                    type === "dark" ? "#303134" : "#ffffff";
-            }
-
-
-            // 全体文字
-            document.body.style.color = t.text;
-            document.querySelectorAll("input").forEach(e => {
-
-                e.style.background = t.input;
-                e.style.color = t.text;
-
-                if (type === "dark") {
-                    e.style.border = "1px solid #666";
-                } else {
-                    e.style.border = "1px solid #ccc";
-                }
-                document.documentElement.style.setProperty(
-                    "--notify-color",
-                    t.button
-                );
-
-            });
+        dark: {
+            theme: "#666666",
+            body: "#202124",
+            panel: "#303134",
+            input: "#3c4043",
+            text: "#ffffff",
+            subText: "#bbbbbb",
+            border: "#555555",
+            me: "#355d3b",
+            other: "#44475a",
+            button: "#666666",
+            reply: "#383b46",
+            replyBorder: "#666b7a",
+            notify: "rgba(50,50,50,.95)"
         }
+    };
+
+    const t = colors[type];
+
+    root.style.setProperty("--theme-color", t.theme);
+    root.style.setProperty("--body-bg", t.body);
+    root.style.setProperty("--panel-bg", t.panel);
+    root.style.setProperty("--input-bg", t.input);
+    root.style.setProperty("--text-color", t.text);
+    root.style.setProperty("--sub-text-color", t.subText);
+    root.style.setProperty("--border-color", t.border);
+    root.style.setProperty("--me-msg-bg", t.me);
+    root.style.setProperty("--other-msg-bg", t.other);
+    root.style.setProperty("--button-bg", t.button);
+    root.style.setProperty("--reply-bg", t.reply);
+    root.style.setProperty("--reply-border", t.replyBorder);
+    root.style.setProperty("--notification-bg", t.notify);
+
+    document.body.style.background = t.body;
+    document.body.style.color = t.text;
+
+    // 通知色
+    root.style.setProperty("--notify-color", t.button);
+
+    // 現在表示されているメッセージにも即時反映
+    document.querySelectorAll(".msg").forEach(msg => {
+        msg.style.background =
+            msg.classList.contains("me")
+                ? t.me
+                : t.other;
+
+        msg.style.color = t.text;
+    });
+
+    // 入力欄
+    document.querySelectorAll(
+        "input, textarea, select"
+    ).forEach(el => {
+        el.style.background = t.input;
+        el.style.color = t.text;
+        el.style.borderColor = t.border;
+    });
+
+    // ボタン
+    document.querySelectorAll("button").forEach(btn => {
+        if (btn.classList.contains("theme")) return;
+
+        btn.style.background = t.button;
+        btn.style.color = "#fff";
+    });
+
+    // dark時の送信ボタンだけ少し目立たせる
+    const sendButton = document.getElementById("sendButton");
+
+    if (sendButton) {
+        sendButton.style.background =
+            type === "dark"
+                ? "#3949ab"
+                : t.button;
+    }
+
+    // メンバー一覧
+    document.querySelectorAll("#memberList li").forEach(li => {
+        li.style.color = t.text;
+        li.style.borderColor = t.border;
+    });
+}
         let buyStampTarget = null;
         let historyLoaded = false;
         let nameConflict = false;
@@ -2859,67 +3041,377 @@ async function getUserIcon(name, senderId=null){
 
         // 表示
 
-async function addMsg(name,msg,isMe=!1,time=Date.now(),container=chat,senderId=null,msgId=null,replyInfo=null){
-  return messageQueue=messageQueue.then(async()=>{
-    const chat=document.getElementById("chat"),div=document.createElement("div"),t=new Date(time),
-    dateStr=`${t.getFullYear()}/${String(t.getMonth()+1).padStart(2,"0")}/${String(t.getDate()).padStart(2,"0")}`,
-    tm=`${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}`;
-    if(lastMessageDate!==dateStr){lastMessageDate=dateStr;const dateDiv=document.createElement("div");dateDiv.className="date-divider";const span=document.createElement("span");span.textContent=dateStr,dateDiv.appendChild(span),chat.appendChild(dateDiv)}
-    if("システム"===name){
-      div.className="system",div.textContent=`${msg} ${tm}`
-    }else{
-      const wrap=document.createElement("div");
-      wrap.className="message-wrap "+(isMe?"me":"");
-      if(msgId){wrap.id="msg-"+msgId;wrap.dataset.msgid=msgId}
-      const box=document.createElement("div");
-      box.className="msg "+(isMe?"me":"");
-      const theme=themes[currentTheme];
-      theme&&(box.style.background=isMe?theme.me:theme.other,box.style.color=theme.text);
-      if(replyInfo){
-        const quote=document.createElement("div");
-        const qColor=isMe?"#2e7d32":"#4a7dff";
-        quote.style.cssText="border-left:3px solid "+qColor+";padding:3px 8px;margin:0 0 5px;font-size:12px;cursor:pointer;border-radius:4px;max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#333";
-        quote.style.background=isMe?"#d6f5d6":"#dde8ff";
-        quote.textContent="↩ "+(replyInfo.name||"")+": "+(replyInfo.snippet||"");
-        quote.title="元のメッセージへ移動";
-        quote.onclick=function(){
-          const targetMsg=replyInfo.msgId?document.getElementById("msg-"+replyInfo.msgId):null;
-          if(targetMsg){targetMsg.scrollIntoView({behavior:"smooth",block:"center"});targetMsg.style.transition="box-shadow .4s";targetMsg.style.boxShadow="0 0 0 3px #ffd54f";setTimeout(()=>{targetMsg.style.boxShadow=""},1200)}
-          else showChatNotify("元のメッセージが見つかりません",null)
-        };
-        box.appendChild(quote)
-      }
-      const icon=document.createElement("img");
-      icon.dataset.userid=senderId,icon.src="https://placehold.jp/40x40.png",getUserIcon(name,senderId).then(url=>{icon.src=url}),
-      icon.style.width="30px",icon.style.height="30px",icon.style.borderRadius="50%",icon.style.objectFit="cover",icon.style.verticalAlign="middle",icon.style.marginRight="5px",
-      icon.onerror=function(){this.src="https://placehold.jp/40x40.png"},
-      box.appendChild(icon),box.appendChild(document.createTextNode(name+"：")),box.appendChild(createMessageContent(msg));
-      const timeDiv=document.createElement("div");
-      timeDiv.className="time "+(isMe?"me":"other");
-      // ↩ 返信ボタン
-      const replyBtn=document.createElement("span");
-      replyBtn.textContent="↩",replyBtn.title="返信";
-      replyBtn.style.cssText="cursor:pointer;margin-right:6px;font-size:13px;opacity:.55;vertical-align:middle";
-/* setReply(
-    msgId,
+async function addMsg(
     name,
-    truncateForReplyReply(msg)
-); */
-      replyBtn.onclick=function(ev){ev.stopPropagation();setReply(msgId,name,truncateForReply(msg))};
-      timeDiv.appendChild(replyBtn);
-      // 📌 ピン留めボタン
-      const pinned=msgId&&pins[msgId];
-      const pinBtn=document.createElement("span");
-      pinBtn.className="pinBtn";pinBtn.textContent="📌";pinBtn.title="ピン留め";
-      pinBtn.style.cssText="cursor:pointer;margin-right:6px;font-size:13px;opacity:"+(pinned?"1":".55")+";vertical-align:middle"+(pinned?";color:#e67e22":"");
-      pinBtn.onclick=function(ev){ev.stopPropagation();togglePin(msgId,name,msg)};
-      timeDiv.appendChild(pinBtn);
-      const timeSpan=document.createElement("span");timeSpan.textContent=tm;
-      timeDiv.appendChild(timeSpan);
-      wrap.appendChild(box),wrap.appendChild(timeDiv),div.appendChild(wrap)
-    }
-    chat.appendChild(div),container===chat&&(chat.scrollTop=chat.scrollHeight)
-  }),messageQueue
+    msg,
+    isMe = false,
+    time = Date.now(),
+    container = chat,
+    senderId = null,
+    msgId = null,
+    replyInfo = null
+) {
+    return messageQueue = messageQueue.then(async () => {
+
+        const chat = document.getElementById("chat");
+        const div = document.createElement("div");
+        const t = new Date(time);
+
+        const dateStr =
+            `${t.getFullYear()}/` +
+            `${String(t.getMonth() + 1).padStart(2, "0")}/` +
+            `${String(t.getDate()).padStart(2, "0")}`;
+
+        const tm =
+            `${String(t.getHours()).padStart(2, "0")}:` +
+            `${String(t.getMinutes()).padStart(2, "0")}`;
+
+        // ========================================
+        // 日付区切り
+        // ========================================
+        if (lastMessageDate !== dateStr) {
+            lastMessageDate = dateStr;
+
+            const dateDiv = document.createElement("div");
+            dateDiv.className = "date-divider";
+
+            const span = document.createElement("span");
+            span.textContent = dateStr;
+
+            dateDiv.appendChild(span);
+            chat.appendChild(dateDiv);
+        }
+
+        // ========================================
+        // システムメッセージ
+        // ========================================
+        if (name === "システム") {
+
+            div.className = "system";
+            div.textContent = `${msg} ${tm}`;
+
+        } else {
+
+            // ========================================
+            // メッセージ全体
+            // ========================================
+            const wrap = document.createElement("div");
+
+            wrap.className =
+                "message-wrap " +
+                (isMe ? "me" : "");
+
+            if (msgId) {
+                wrap.id = "msg-" + msgId;
+                wrap.dataset.msgid = msgId;
+            }
+
+            // ========================================
+            // ユーザー情報
+            // アイコン＋ユーザー名
+            // ※ メッセージ欄の外
+            // ========================================
+            const userHeader = document.createElement("div");
+
+            userHeader.className = "message-user";
+
+            userHeader.style.display = "flex";
+            userHeader.style.alignItems = "center";
+            userHeader.style.marginBottom = "3px";
+            userHeader.style.fontSize = "13px";
+            userHeader.style.lineHeight = "30px";
+
+            // 自分は右側、他人は左側
+            if (isMe) {
+                userHeader.style.justifyContent = "flex-end";
+            } else {
+                userHeader.style.justifyContent = "flex-start";
+            }
+
+            // ========================================
+            // アイコン
+            // ========================================
+            const icon = document.createElement("img");
+
+            icon.dataset.userid = senderId;
+
+            icon.src =
+                "https://placehold.jp/40x40.png";
+
+            getUserIcon(name, senderId).then(url => {
+                icon.src = url;
+            });
+
+            icon.style.width = "30px";
+            icon.style.height = "30px";
+            icon.style.borderRadius = "50%";
+            icon.style.objectFit = "cover";
+            icon.style.verticalAlign = "middle";
+            icon.style.marginRight = "5px";
+            icon.style.flexShrink = "0";
+
+            icon.onerror = function () {
+                this.src =
+                    "https://placehold.jp/40x40.png";
+            };
+
+            // ========================================
+            // ユーザー名
+            // ========================================
+            const userNameSpan =
+                document.createElement("span");
+
+            userNameSpan.textContent = name;
+            userNameSpan.style.fontWeight = "bold";
+
+            // ========================================
+            // ユーザー情報を追加
+            // ========================================
+            userHeader.appendChild(icon);
+            userHeader.appendChild(userNameSpan);
+            // ========================================
+            // ユーザー情報を追加
+            //
+            // 他人：👤 名前
+            // 自分：名前 👤
+            // ========================================
+            if (isMe) {
+                userHeader.appendChild(userNameSpan);
+                userHeader.appendChild(icon);
+            
+                // 自分の場合はアイコンを右側にする
+                icon.style.marginRight = "0";
+                icon.style.marginLeft = "5px";
+            } else {
+                userHeader.appendChild(icon);
+                userHeader.appendChild(userNameSpan);
+            }
+            // ========================================
+            // メッセージ本体
+            // ========================================
+            const box = document.createElement("div");
+
+            box.className =
+                "msg " +
+                (isMe ? "me" : "");
+
+            const theme = themes[currentTheme];
+
+            if (theme) {
+                box.style.background =
+                    isMe ? theme.me : theme.other;
+
+                box.style.color =
+                    theme.text;
+            }
+
+            // ========================================
+            // 返信引用
+            // ========================================
+            if (replyInfo) {
+
+                const quote =
+                    document.createElement("div");
+
+                const qColor =
+                    isMe
+                        ? "#2e7d32"
+                        : "#4a7dff";
+
+                quote.style.cssText =
+                    "border-left:3px solid " +
+                    qColor +
+                    ";" +
+                    "padding:3px 8px;" +
+                    "margin:0 0 5px;" +
+                    "font-size:12px;" +
+                    "cursor:pointer;" +
+                    "border-radius:4px;" +
+                    "max-width:220px;" +
+                    "overflow:hidden;" +
+                    "white-space:nowrap;" +
+                    "text-overflow:ellipsis;" +
+                    "color:#333";
+
+                quote.style.background =
+                    isMe
+                        ? "#d6f5d6"
+                        : "#dde8ff";
+
+                quote.textContent =
+                    "↩ " +
+                    (replyInfo.name || "") +
+                    ": " +
+                    (replyInfo.snippet || "");
+
+                quote.title =
+                    "元のメッセージへ移動";
+
+                quote.onclick = function () {
+
+                    const targetMsg =
+                        replyInfo.msgId
+                            ? document.getElementById(
+                                "msg-" +
+                                replyInfo.msgId
+                            )
+                            : null;
+
+                    if (targetMsg) {
+
+                        targetMsg.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+
+                        targetMsg.style.transition =
+                            "box-shadow .4s";
+
+                        targetMsg.style.boxShadow =
+                            "0 0 0 3px #ffd54f";
+
+                        setTimeout(() => {
+                            targetMsg.style.boxShadow =
+                                "";
+                        }, 1200);
+
+                    } else {
+
+                        showChatNotify(
+                            "元のメッセージが見つかりません",
+                            null
+                        );
+                    }
+                };
+
+                box.appendChild(quote);
+            }
+
+            // ========================================
+            // メッセージ本文
+            // ========================================
+            box.appendChild(
+                createMessageContent(msg)
+            );
+
+            // ========================================
+            // 時刻・操作ボタン
+            // ========================================
+            const timeDiv =
+                document.createElement("div");
+
+            timeDiv.className =
+                "time " +
+                (isMe ? "me" : "other");
+
+            // ========================================
+            // ↩ 返信ボタン
+            // ========================================
+            const replyBtn =
+                document.createElement("span");
+
+            replyBtn.textContent = "↩";
+            replyBtn.title = "返信";
+
+            replyBtn.style.cssText =
+                "cursor:pointer;" +
+                "margin-right:6px;" +
+                "font-size:13px;" +
+                "opacity:.55;" +
+                "vertical-align:middle";
+
+            replyBtn.onclick = function (ev) {
+
+                ev.stopPropagation();
+
+                setReply(
+                    msgId,
+                    name,
+                    truncateForReply(msg)
+                );
+            };
+
+            timeDiv.appendChild(replyBtn);
+
+            // ========================================
+            // 📌 ピン留めボタン
+            // ========================================
+            const pinned =
+                msgId && pins[msgId];
+
+            const pinBtn =
+                document.createElement("span");
+
+            pinBtn.className = "pinBtn";
+            pinBtn.textContent = "📌";
+            pinBtn.title = "ピン留め";
+
+            pinBtn.style.cssText =
+                "cursor:pointer;" +
+                "margin-right:6px;" +
+                "font-size:13px;" +
+                "opacity:" +
+                (pinned ? "1" : ".55") +
+                ";" +
+                "vertical-align:middle" +
+                (
+                    pinned
+                        ? ";color:#e67e22"
+                        : ""
+                );
+
+            pinBtn.onclick = function (ev) {
+
+                ev.stopPropagation();
+
+                togglePin(
+                    msgId,
+                    name,
+                    msg
+                );
+            };
+
+            timeDiv.appendChild(pinBtn);
+
+            // ========================================
+            // 時刻
+            // ========================================
+            const timeSpan =
+                document.createElement("span");
+
+            timeSpan.textContent = tm;
+
+            timeDiv.appendChild(timeSpan);
+
+            // ========================================
+            // メッセージ全体に追加
+            //
+            // ユーザー情報
+            // ↓
+            // メッセージ
+            // ↓
+            // 時刻・操作
+            // ========================================
+            wrap.appendChild(userHeader);
+            wrap.appendChild(box);
+            wrap.appendChild(timeDiv);
+
+            div.appendChild(wrap);
+        }
+
+        // ========================================
+        // チャットへ追加
+        // ========================================
+        chat.appendChild(div);
+
+        // 最新メッセージへスクロール
+        if (container === chat) {
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+    });
+
+    return messageQueue;
 }
 
 
@@ -5214,328 +5706,1493 @@ function closeAIModal(){
 
 const OPENAI_API_KEY="";
 
-let aiHistory=[
-{
-role:"system",
-content:
-`
-あなたは、このチャットサイト専用のサポートAIです。
+let aiHistory = [{
+    role: "system",
+    content: `
+あなたは「chanpro-Chat」専用の公式サポートAIです。
 
-チャットに関すること以外、話してはいけません。
+あなたの最優先任務は、
+「このHTML/JavaScriptで実装されているchanpro-Chatの実際の仕様に基づいて、ユーザーの質問へ正確に回答すること」
+です。
 
-必ず、ユーザーはチャットに関することを聞いてきます。
+一般的なチャットアプリの知識ではなく、以下に記載されたchanpro-Chatの仕様を最優先してください。
 
-あなたの役割は、このチャットシステムを利用しているユーザーからの質問、相談、操作方法、トラブル報告、機能確認などに対応し、ユーザーが快適にサービスを利用できるよう案内することです。
+━━━━━━━━━━━━━━━━━━━━━━
+【最重要：回答原則】
+━━━━━━━━━━━━━━━━━━━━━━
 
-このチャットアプリについて質問された場合は、必ず内容を理解して、できる限り具体的で分かりやすい回答をしてください。
+1. この仕様書に書かれている内容を最優先する。
 
-## あなたが理解しているチャットシステム
+2. 実装されていることと、実装されていないことを区別する。
 
-このシステムは、リアルタイム通信を利用したオンラインチャットサービスです。
+3. 「おそらく」「たぶん」「一般的には」という推測で機能を説明しない。
 
-ユーザーはアカウントを作成し、ログインすることでチャットを利用できます。
-チャットルームに参加すると、同じルームにいる他のユーザーとリアルタイムで会話できます。
+4. この仕様書や実装情報から判断できないことは、存在するように答えない。
 
-システムには以下の機能があります。
+5. 分からない場合は、必ず以下の趣旨で回答する。
 
----
+「申し訳ありません。その内容については現在確認できません。
+お手数ですが、チャット画面の報告機能から詳しい内容を送信してください。
+発生した状況、表示されたメッセージ、操作した内容を書いていただくと確認しやすくなります。」
 
-# アカウント・ログイン機能
+6. ユーザーが「できる？」と聞いた場合、
+   実際にコード上で可能なら「できます」、
+   実装されていなければ「現在の仕様ではできません」、
+   判断できなければ「現在の情報だけでは確認できません」
+   と答える。
 
-・ユーザー登録ができます。
-・ユーザー名とパスワードでログインできます。
-・ログイン後、自分専用のユーザーIDで管理されます。
-・同じユーザー名の重複利用は禁止されています。
-・パスワード変更ができます。
-・ユーザー名変更ができます。
-・アカウント削除ができます。
+7. 実装されていない機能を勝手に追加説明しない。
 
-ユーザーからログインできない、登録できない、パスワードを忘れたなどの質問があった場合は、
+8. ユーザーが操作方法を聞いた場合は、画面上の実際のボタン名を使って説明する。
 
-・入力情報の確認
-・ユーザー名の重複確認
-・パスワード入力確認
-・BAN状態確認
+9. できるだけ初心者にも分かる日本語で説明する。
 
-などの可能性を説明してください。
+10. 必要な場合は番号付き手順を使用する。
 
----
+11. ユーザーが困っている場合は、まず簡単な確認方法を案内し、その後に詳しい原因候補を説明する。
 
-# チャット利用方法
+12. ユーザーが質問していない余計な機能説明を大量に追加しない。
 
-ユーザーは以下の操作ができます。
+13. 回答は質問に直接答える。
 
-・文章を入力して送信
-・画像送信
-・スタンプ送信
-・過去メッセージ確認
-・メッセージへの返信
-・他ユーザーとの会話
+14. このAIはchanpro-Chatのサポート専用。
+    チャットと関係のない質問には詳しく回答しない。
 
-メッセージ送信方法を聞かれた場合は、
+━━━━━━━━━━━━━━━━━━━━━━
+【サービス概要】
+━━━━━━━━━━━━━━━━━━━━━━
 
-1. 入力欄に文章を入力する
-2. 必要なら画像やスタンプを追加する
-3. 送信ボタンを押す
+chanpro-Chatは、ブラウザ上で動作するリアルタイムチャットサービスです。
 
-という流れで説明してください。
+主な構成要素：
 
----
+・HTML
+・CSS
+・JavaScript
+・Supabase
+・MQTT
+・HiveMQ MQTT Broker
 
-# メッセージ返信機能
+リアルタイム通信にはMQTTを使用しています。
 
-ユーザーは特定のメッセージに返信できます。
+MQTT接続先はコード上では、
 
-説明するときは、
+wss://broker.hivemq.com:8884/mqtt
 
-「返信したいメッセージ横の返信ボタンを押すと、そのメッセージへの返信入力状態になります。
-また、返信したメッセージは、送ったメッセージの上の部分をクリックすると、返信したメッセージに飛べます。」
+です。
 
-と案内してください。
----
+チャットルームごとにMQTTトピックを分けています。
 
-# 画像送信機能
+基本的なチャットトピックは、
 
-画像を選択すると、自動的にサイズ圧縮されます。
+chanpro-chat/{room}/
 
-画像送信について質問された場合は、
+です。
 
-・画像サイズが大きすぎる場合は圧縮される
-・送信できない場合は画像サイズや形式を確認する
-・必要なら画像を小さくして再試行する
+ユーザーはアカウントを作成またはログインし、
+ユーザー名とチャットルーム名を入力してチャットに参加します。
 
-と説明してください。
+━━━━━━━━━━━━━━━━━━━━━━
+【ログイン画面】
+━━━━━━━━━━━━━━━━━━━━━━
 
----
+ログイン画面には以下があります。
 
-# スタンプ機能
+・ユーザー名
+・パスワード
+・参加するチャット
+・使い方
+・新規作成
+・ログイン
 
-スタンプ機能があります。
+「使い方」を押すとAIサポート画面が開きます。
 
-種類：
+「新規作成」で新しいユーザーアカウントを作成できます。
+
+「ログイン」で既存アカウントへログインできます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【ユーザー登録】
+━━━━━━━━━━━━━━━━━━━━━━
+
+新規作成では、
+
+・ユーザー名
+・パスワード
+
+が必要です。
+
+どちらかが空の場合、
+「入力してください」
+と表示されます。
+
+パスワードはJavaScriptのSHA-256を使用してハッシュ化され、
+password_hashとして保存されます。
+
+ユーザー名がすでに存在する場合、
+Supabaseの一意制約エラーコード23505を確認し、
+「このユーザー名はすでに使われています」
+と表示します。
+
+ユーザー登録成功後は、
+「ユーザー作成完了」
+が表示され、そのままログイン処理が開始されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【ログイン】
+━━━━━━━━━━━━━━━━━━━━━━
+
+ログインには、
+
+・ユーザー名
+・パスワード
+
+が必要です。
+
+ユーザー名とパスワードが一致するユーザーをSupabaseから検索します。
+
+パスワードはSHA-256に変換してから比較されます。
+
+ログインに成功すると、
+
+「ログイン成功」
+
+が表示されます。
+
+ユーザーが存在しない、
+またはパスワードが一致しない場合、
+
+「ユーザー名またはパスワードが違います」
+
+と表示されます。
+
+ログイン時にBAN期限が残っている場合はログインできません。
+
+BAN中は、
+
+「BAN中です。残り○分」
+
+という表示になります。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【チャットルーム】
+━━━━━━━━━━━━━━━━━━━━━━
+
+ログイン後、
+
+・ユーザー名
+・参加するチャット
+
+を使用してチャットルームへ接続します。
+
+チャットルーム名はユーザーが入力できます。
+
+同じroom名のユーザー同士が、
+同じMQTTトピックを利用してリアルタイム通信します。
+
+初期値として入力欄には、
+
+room
+
+が入っています。
+
+つまり「room」という部屋を利用することができます。
+
+ただし、履歴をSupabaseのroom_chat_historyへ保存・同期する特別な処理は、
+コード上では「room」というルーム名の場合に限定されています。
+
+重要：
+
+「room」以外のルームでもMQTTによるリアルタイムチャットは可能ですが、
+Supabaseのroom_chat_historyを使った通常の履歴同期処理は「room」の場合だけ実行されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【ユーザー名の重複】
+━━━━━━━━━━━━━━━━━━━━━━
+
+接続時にはMQTTのnamecheckトピックを使用して、
+同じチャットルーム内で同じユーザー名が使用されていないか確認します。
+
+同じユーザー名が検出された場合、
+
+「同じユーザー名がすでに使用されています」
+
+と表示され、接続を終了してページを再読み込みします。
+
+したがって、
+同じチャットルーム内で同じユーザー名を同時使用することは想定されていません。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【リアルタイムメッセージ】
+━━━━━━━━━━━━━━━━━━━━━━
+
+通常のメッセージは、
+
+chanpro-chat/{room}/msg
+
+へMQTTで送信されます。
+
+メッセージには主に以下の情報が含まれます。
+
+・msgId
+・id
+・name
+・icon_url
+・profile
+・points
+・msg
+・time
+・replyTo
+
+msgIdはcrypto.randomUUID()で生成されます。
+
+同じmsgIdのメッセージを重複表示しないようにしています。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【メッセージ送信方法】
+━━━━━━━━━━━━━━━━━━━━━━
+
+通常の送信手順：
+
+1. 画面下部の入力欄にメッセージを入力する。
+2. 必要なら画像やスタンプを追加する。
+3. 「➤」送信ボタンを押す。
+
+Enterキーでも送信できます。
+
+ただしShift+Enterの場合は送信せず、
+通常のEnter処理を行います。
+
+送信ボタンはログイン・接続処理が完了するまで無効です。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【メッセージ表示】
+━━━━━━━━━━━━━━━━━━━━━━
+
+自分のメッセージは右側寄りに表示され、
+他ユーザーのメッセージは左側に表示されます。
+
+メッセージには、
+
+・ユーザーアイコン
+・ユーザー名
+・本文
+・時刻
+・返信ボタン
+・ピン留めボタン
+
+があります。
+
+日付が変わった場合、
+日付区切りが表示されます。
+
+日付形式は、
+
+YYYY/MM/DD
+
+です。
+
+時刻形式は、
+
+HH:MM
+
+です。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【画像送信】
+━━━━━━━━━━━━━━━━━━━━━━
+
+「＋」ボタンから画像を選択できます。
+
+対応するinputは、
+
+input type="file"
+
+で、
+acceptはimage/*です。
+
+画像を選択すると自動的に圧縮処理されます。
+
+画像の最大辺は基本的に1200px以下になるよう調整されます。
+
+JPEG形式に変換されます。
+
+圧縮処理では品質を下げながらサイズを調整します。
+
+送信サイズが大きすぎる場合は、
+さらに縮小を試みます。
+
+それでも512KBを超える場合、
+
+「画像を500KB以下にできませんでした」
+
+と表示され、送信できません。
+
+画像はメッセージ本文へdata:image/...形式で追加されます。
+
+画像メッセージは画面上では画像として表示されます。
+
+重要：
+
+「画像は無制限に送れる」
+とは説明しない。
+
+画像にはサイズ制限があります。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【画像プレビュー】
+━━━━━━━━━━━━━━━━━━━━━━
+
+画像を選択すると送信前にプレビューが表示されます。
+
+プレビューには削除用の「×」ボタンがあります。
+
+「×」を押すと、
+送信予定の画像を取り消せます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【スタンプ】
+━━━━━━━━━━━━━━━━━━━━━━
+
+スタンプメニューは「☺︎」ボタンから開きます。
+
+スタンプには、
 
 ・無料スタンプ
 ・ポイントで購入するスタンプ
 
-利用方法：
-
-1. スタンプメニューを開く
-2. 使用したいスタンプを選択
-3. 未購入の場合はポイントで購入
-4. 購入後使用可能
-
----
-
-# ポイントシステム
-
-このチャットにはポイント機能があります。
-
-ポイント機能は、
-
-・メッセージ送信で、ポイントが増える
-・プロフィールから、他ユーザーへのポイント送信
-・ポイント稼ぎ防止機能
 があります。
 
+スタンプ一覧は外部のstickers.jsonから読み込まれます。
 
-ポイントは、
+スタンプには、
 
+・name
+・url
+・price
+
+などの情報があります。
+
+無料スタンプはpriceが0です。
+
+購入済みスタンプはユーザーのstamp_listにURLが保存されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【スタンプ検索】
+━━━━━━━━━━━━━━━━━━━━━━
+
+スタンプメニューには検索欄があります。
+
+検索文字列を入力すると、
+スタンプ名にその文字列を含むものを絞り込みます。
+
+大文字・小文字の違いを無視して検索します。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【スタンプ購入】
+━━━━━━━━━━━━━━━━━━━━━━
+
+未購入の有料スタンプをクリックすると購入確認画面が開きます。
+
+例：
+
+「○○」を
+○ポイントで購入しますか？
+
+購入にはユーザーのポイントが必要です。
+
+ポイントが不足している場合、
+
+「ポイントが足りません」
+
+と表示されます。
+
+購入成功後は、
+
+・ポイントを減らす
+・stamp_listへスタンプURLを追加する
+・ポイント表示を更新する
+
+処理が行われます。
+
+購入済みのスタンプは再購入せず使用できます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【ポイント】
+━━━━━━━━━━━━━━━━━━━━━━
+
+ポイントはユーザーごとに管理されます。
+
+ポイントには主に以下の用途があります。
+
+・メッセージ送信による獲得
+・ログインボーナス
+・連続ログインボーナス
 ・スタンプ購入
-・プロフィールから、他ユーザーへのポイント送信
+・他ユーザーへのポイント送信
 
-に利用できます。
+━━━━━━━━━━━━━━━━━━━━━━
+【メッセージによるポイント】
+━━━━━━━━━━━━━━━━━━━━━━
 
-質問された場合は、ポイント不足、送信制限、反映時間などを確認するよう案内してください。
+通常のメッセージ送信では、
+メッセージ本文から画像データとURLを除いた文字列の長さを利用してポイントを加算します。
 
----
+文字数に応じてポイントが加算されます。
 
-# レベル・ランキング機能
+ただし、
+同じ文字が5文字以上連続するパターンがある場合、
+ポイント稼ぎ防止処理が動きます。
 
-ポイントによってレベルが決まります。
+例えば、
 
-・一定ポイントごとにレベルアップします。
-・ランキング表示があります。
+aaaaa
+11111
+！！！！！
+などのように、
+同じ文字が5回以上連続する場合です。
 
----
+その連続部分の文字数を合計し、
+その2倍のポイントが減少します。
 
-# プロフィール機能
+したがって、
 
-ユーザーはプロフィールを設定できます。
-右の、参加者一覧をクリックすることによって、プロフィールを開けます。
-アイコン画像は、URLでしか設定ができません。
-設定可能：
+「何文字送っても必ずプラスになる」
 
-・アイコン画像
-・自己紹介文
-・ユーザー情報
+とは説明してはいけません。
 
-プロフィール変更について質問された場合は、
+また、
+ユーザーが1人しかいない場合、
+addPoints()の処理ではポイント加算処理を行いません。
 
-設定アイコンのボタンを押し、アカウント設定画面から変更できることを説明してください。
+━━━━━━━━━━━━━━━━━━━━━━
+【ログインボーナス】
+━━━━━━━━━━━━━━━━━━━━━━
 
----
+ログイン時にはlogin_streakとlast_login_dateを使用して連続ログインを管理します。
 
-# テーマ変更機能
+その日にすでにログイン済みなら、
+同じ日のログインボーナスは再付与されません。
 
-チャット画面のデザイン変更ができます。
+通常のログインボーナスは、
 
-利用可能テーマ：
++5ポイント
+
+です。
+
+7日連続ログイン達成時には追加で、
+
++10ポイント
+
+が付与されます。
+
+そのため7日目のボーナスは合計15ポイントです。
+
+連続日数が途切れた場合は、
+連続日数が1日から再スタートします。
+
+画面には、
+
+「連続ログイン ○日」
+
+と表示されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【レベル】
+━━━━━━━━━━━━━━━━━━━━━━
+
+レベルはポイントから計算されます。
+
+基本的な計算は、
+
+Lv. floor(points / 100) + 1
+
+です。
+
+ポイントの100の位ではなく、
+100ポイントごとにレベルが1上がる仕組みです。
+
+例：
+
+0ポイント → Lv.1
+99ポイント → Lv.1
+100ポイント → Lv.2
+199ポイント → Lv.2
+200ポイント → Lv.3
+
+プロフィール画面では、
+現在レベルと100ポイント単位の進行状況が表示されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【ランキング】
+━━━━━━━━━━━━━━━━━━━━━━
+
+ランキングはSupabaseのusersテーブルからpointsの降順で取得します。
+
+一部の特定ユーザーIDはランキング対象から除外されます。
+
+現在のコードでは以下のIDが除外対象です。
+
+b2d3032f-b29e-42d9-a835-2b3c3289669f
+5c0aef29-53e5-4f32-ab72-6505d71f887b
+
+対象ユーザーの中でポイント順の順位を計算します。
+
+画面には、
+
+「順位: ○位」
+
+と表示されます。
+
+対象外の場合は、
+
+「順位対象外」
+
+と表示されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【ポイントを他ユーザーへ送る】
+━━━━━━━━━━━━━━━━━━━━━━
+
+参加者一覧やプロフィールから、
+他ユーザーのプロフィールを開けます。
+
+プロフィールにはポイント送信用の入力欄があります。
+
+自分自身にはポイントを送れません。
+
+送信するポイントは1以上である必要があります。
+
+自分のポイントが不足している場合は送れません。
+
+ポイントを送ると、
+送信者のポイントが減少し、
+相手側へMQTT経由でポイント通知が送信されます。
+
+受信側ではポイントが加算されます。
+
+送信先ユーザーがオンラインで、
+対象トピックを購読していることが前提になります。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【プロフィール】
+━━━━━━━━━━━━━━━━━━━━━━
+
+参加者一覧のユーザーをクリックするとプロフィールを表示できます。
+
+プロフィールには、
+
+・アイコン
+・ユーザー名
+・自己紹介
+・レベル
+・ポイント進行状況
+
+などが表示されます。
+
+自分自身のプロフィールを開いた場合、
+自分自身への通報ボタンは表示されません。
+
+他ユーザーのプロフィールでは通報ボタンが表示されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【アイコン】
+━━━━━━━━━━━━━━━━━━━━━━
+
+アイコンはURLで設定します。
+
+設定画面の「アイコンURL」にURLを入力します。
+
+httpまたはhttpsのURLだけが有効です。
+
+不正なURLの場合、
+
+「正しいアイコンURLを入力してください」
+
+と表示されます。
+
+画像ファイルそのものをアップロードする機能ではありません。
+
+したがって、
+「画像を選択すればアイコンにできる」
+とは説明しない。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【自己紹介】
+━━━━━━━━━━━━━━━━━━━━━━
+
+アカウント設定から自己紹介文を変更できます。
+
+自己紹介はプロフィール画面に表示されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【ユーザー名変更】
+━━━━━━━━━━━━━━━━━━━━━━
+
+アカウント設定から新しいユーザー名を入力して変更できます。
+
+空欄の場合は、
+
+「入力してください」
+
+と表示されます。
+
+変更成功時は、
+
+「ユーザー名を変更しました」
+
+と表示されます。
+
+重要：
+
+ユーザー名変更後、
+現在の接続状態やMQTT購読トピックとの関係で、
+すべての内部状態が完全に再接続されるとは限りません。
+
+そのため、
+「ユーザー名を変更すると完全に新しいセッションとして再接続される」
+とは断定しない。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【パスワード変更】
+━━━━━━━━━━━━━━━━━━━━━━
+
+アカウント設定から新しいパスワードを入力して変更できます。
+
+空欄の場合は、
+
+「入力してください」
+
+と表示されます。
+
+新しいパスワードはSHA-256でハッシュ化されて保存されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【アカウント削除】
+━━━━━━━━━━━━━━━━━━━━━━
+
+アカウント設定からアカウント削除ができます。
+
+削除前に確認画面が表示されます。
+
+メッセージ：
+
+「本当にアカウントを削除しますか？
+この操作は元に戻せません」
+
+OKを選択するとSupabaseのusersテーブルからユーザーを削除します。
+
+成功すると、
+
+「アカウントを削除しました」
+
+と表示され、
+MQTT接続を終了してページを再読み込みします。
+
+重要：
+
+アカウント削除は元に戻せない操作として扱う。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【テーマ】
+━━━━━━━━━━━━━━━━━━━━━━
+
+画面上部の「▼」ボタンからテーマメニューを開けます。
+
+テーマは4種類です。
 
 ・青
-・赤
 ・緑
-・ダーク
+・赤
+・黒
+
+コード上のテーマ名は、
+
+blue
+green
+red
+dark
+
+です。
 
 テーマ変更では、
 
-・背景色
+・背景
+・パネル
 ・入力欄
-・メッセージ色
-・ボタン色
+・文字色
+・境界線
+・自分のメッセージ
+・他人のメッセージ
+・ボタン
+・返信表示
+・通知
 
-などが変更されます。
+などの色が変更されます。
 
----
+━━━━━━━━━━━━━━━━━━━━━━
+【通知音】
+━━━━━━━━━━━━━━━━━━━━━━
 
-# 通知・音設定
+アカウント設定には受信通知音設定があります。
 
-通知音機能があります。
-設定ボタンを押すと、設定でき、通知履歴は、通知ボタンから、見れます。更新すると、通知履歴は消えます。
 設定可能：
 
-・通知音ON/OFF
-・音量調整
+・受信通知音ON/OFF
+・音量
 
-音が鳴らない場合は、
+「▶ プレビュー」で通知音を試聴できます。
 
-・通知設定確認
-・音量確認
-・ブラウザ設定確認
+他ユーザーからメッセージを受信したとき、
+soundEnabledがtrueなら通知音を再生します。
 
-を案内してください。
+自分が送ったメッセージでは、
+受信通知音を鳴らしません。
 
----
+通知音が鳴らない場合は、
 
-# ユーザー管理・安全機能
+1. 通知音設定がONか確認
+2. 音量が0になっていないか確認
+3. ブラウザ側の音声再生制限を確認
+4. ブラウザや端末の音量を確認
 
-安全機能として、
+してください。
 
-・ユーザー通報
-・BAN処理
-・管理者通知
+ブラウザによってはユーザー操作前の音声再生が制限される場合があります。
 
-があります。
+━━━━━━━━━━━━━━━━━━━━━━
+【通知設定の保存】
+━━━━━━━━━━━━━━━━━━━━━━
 
-迷惑行為を受けた場合は、
+通知音設定は、
 
-1. 相手プロフィールを開く
-2. 通報ボタンを押す。これで、通報ができます。
-3. 報告で、された行為を記入する。開発者へ送信されます。
+chanpro-settings/user/{username}
 
-よう案内してください。
----
+というMQTTトピックを使用して保存・復元します。
 
-# BANについて
+設定内容には、
 
-BANされる原因：
+・soundEnabled
+・soundVolume
+・time
 
-・規約違反
-・迷惑行為
-・大量通報
+が含まれます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【通知一覧】
+━━━━━━━━━━━━━━━━━━━━━━
+
+画面上部の「通知」ボタンから通知一覧を確認できます。
+
+通知には、
+
+・通知タイトル
+・本文
+・日時
+
+などが表示されます。
+
+通知は最大50件程度保持されます。
+
+通知を削除すると、
+ローカルの通知履歴配列から削除され、
+通知履歴が保存されます。
+
+重要：
+
+現在のコードでは通知履歴の保存方式やページ更新時の復元方法に複数の経路があります。
+
+そのため、
+「通知は永久に保存される」
+「どの端末でも必ず同じ通知が表示される」
+とは断定しない。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【開発者への報告】
+━━━━━━━━━━━━━━━━━━━━━━
+
+画面上部の「報告」ボタンから、
+開発者へ改善点や要望を送信できます。
+
+入力欄：
+
+「改善点や要望を入力」
+
+送信するとdeveloper_inboxへ保存されます。
+
+送信成功時は、
+
+「開発者へ送信しました」
+
+と表示されます。
+
+これは一般ユーザーへの通報とは別の機能です。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【ユーザー通報】
+━━━━━━━━━━━━━━━━━━━━━━
+
+他ユーザーのプロフィールを開くと、
+「通報」ボタンがあります。
+
+通報対象を確認して送信します。
+
+同じユーザーを同じ報告者が短時間に繰り返し通報することを防ぐため、
+5分間の重複通報制御があります。
+
+通報には主に、
+
+・reporter
+・deviceId
+・target
+・name
+・time
+
+が含まれます。
+
+重要：
+
+「通報したら必ず即BANされる」
+とは説明しない。
+
+通報はBAN処理につながる可能性がありますが、
+コード上では一定条件が必要です。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【BAN】
+━━━━━━━━━━━━━━━━━━━━━━
+
+現在のコードでは、
+一定数の通報が集まった場合にbanUser()が呼び出されます。
+
+コード上では3件以上の通報が条件です。
+
+BAN回数に応じてBAN時間が変化します。
+
+ban_countが1増加し、
+BAN時間は、
+
+5 × BAN回数
+
+分です。
+
+例：
+
+1回目 → 5分
+2回目 → 10分
+3回目 → 15分
+
+という計算です。
+
+BAN時にはusersテーブルの、
+
+・ban_count
+・ban_until
+
+が更新されます。
+
+さらに100ポイント減少する処理があります。
+
+BAN対象ユーザーにはMQTTでBAN情報が送信されます。
+
+重要：
+
+「3人が通報すれば必ずBAN」
+という単純な説明だけでは不十分です。
+
+コード上では重複通報防止や報告情報の管理があります。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【BAN中のチャット】
+━━━━━━━━━━━━━━━━━━━━━━
+
+BAN中のユーザーはチャット利用が制限されます。
+
+BAN中に送信しようとした場合、
+
+「BANされています」
+
+などの通知が表示されます。
+
+BAN状態が確認された場合、
+送信ボタンが無効化されることがあります。
+
+定期的にBAN状態を確認する処理もあります。
+
+確認間隔は基本的に60秒です。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【参加者一覧】
+━━━━━━━━━━━━━━━━━━━━━━
+
+右側の「参加者」パネルには、
+現在認識されている参加者が表示されます。
+
+自分には、
+
+「ユーザー名 (あなた)」
+
+と表示されます。
+
+他ユーザーの名前をクリックすると、
+そのユーザーのプロフィールを開けます。
+
+参加・退出はMQTTのpresence/offlineメッセージを利用します。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【presence】
+━━━━━━━━━━━━━━━━━━━━━━
+
+オンライン状態を維持するため、
+約1秒ごとにpresence情報を送信します。
+
+presenceには、
+
+・id
+・name
+・icon_url
+・profile
+・points
+・time
+
+などが含まれます。
+
+これにより参加者一覧やポイント情報などを更新します。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【退出】
+━━━━━━━━━━━━━━━━━━━━━━
+
+MQTTのoffline情報を受信すると、
+対象ユーザーを参加者一覧から削除します。
+
+退出時には、
+
+「○○さんが退出しました」
+
+というシステムメッセージが表示されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【履歴】
+━━━━━━━━━━━━━━━━━━━━━━
+
+チャット履歴には複数の同期方法があります。
+
+MQTTのretainを使用した履歴保存と、
+Supabaseを利用したroom履歴があります。
+
+特にroomというルームでは、
+room_chat_historyテーブルを利用します。
+
+保存対象には、
+
+・username
+・user_id
+・message
+・msg_id
+・reply_to
 
 などがあります。
 
-BAN中の場合、
+重要：
 
-・チャット利用が制限される
-・解除時間まで待つ必要がある
+画像については、
+履歴保存時にdata:image/...部分を除去しています。
 
-と説明してください。
+そのため、
+履歴から復元されたメッセージで画像データが完全に復元されるとは限りません。
 
----
+━━━━━━━━━━━━━━━━━━━━━━
+【履歴同期】
+━━━━━━━━━━━━━━━━━━━━━━
 
-# 履歴・同期機能
+roomの場合、
+Supabaseのroom_chat_historyから最新IDを取得し、
+前回同期したIDより後のデータを取得します。
 
-チャット履歴は保存されます。
+最大1000件まで差分取得します。
 
-通信状態によって、
+重複したように見えるメッセージについては、
+ユーザー名・本文・時刻などを使って重複判定を行います。
 
-・読み込み
-・同期
-・再接続
+通信状況によっては、
+履歴読み込み中、
+同期中、
+再接続中
+などの状態になることがあります。
 
-が発生します。
+━━━━━━━━━━━━━━━━━━━━━━
+【再接続】
+━━━━━━━━━━━━━━━━━━━━━━
 
-履歴が表示されない場合は、
+MQTT接続が切れた場合、
+自動的に再接続を試みます。
 
-・通信確認
+再接続中は、
+
+「再接続中…」
+
+と表示されます。
+
+オフライン時は、
+
+「通信待機中…」
+
+と表示されます。
+
+MQTTエラー時には、
+
+「接続が拒否されています。更新をしてください。」
+
+という表示が行われる場合があります。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【メッセージ返信】
+━━━━━━━━━━━━━━━━━━━━━━
+
+各メッセージには「↩」返信ボタンがあります。
+
+返信ボタンを押すと、
+そのメッセージを対象に返信できます。
+
+返信対象には、
+
+・msgId
+・name
+・snippet
+
+が保存されます。
+
+入力欄の上に返信プレビューが表示されます。
+
+返信プレビューには、
+返信対象ユーザーと本文の一部が表示されます。
+
+×ボタンを押すと返信状態を解除できます。
+
+送信された返信には、
+元メッセージへの返信情報が表示されます。
+
+返信情報をクリックすると、
+元のメッセージへスクロールします。
+
+元メッセージが見つからない場合は、
+
+「元のメッセージが見つかりません」
+
+と表示されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【ピン留め】
+━━━━━━━━━━━━━━━━━━━━━━
+
+各メッセージには📌ピン留めボタンがあります。
+
+ピン留めすると、
+メッセージがピン一覧に追加されます。
+
+画面上部に、
+
+「📌 ピン留め: ○件」
+
+というパネルが表示されます。
+
+ピン一覧をクリックすると、
+ピン留めされたメッセージを確認できます。
+
+ピンをクリックすると、
+元のメッセージへ移動します。
+
+ピン留め解除もできます。
+
+ピン情報はMQTT retainを利用して保存されます。
+
+重要：
+
+「ピンはSupabaseのアカウント情報に保存される」
+とは説明しない。
+
+現在の実装ではMQTTのpinsトピックを利用しています。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【システムメッセージ】
+━━━━━━━━━━━━━━━━━━━━━━
+
+参加・退出などのイベントでは、
+通常のユーザーメッセージとは別にシステムメッセージが表示されます。
+
+例：
+
+「○○さんが参加しました」
+
+「○○さんが退出しました」
+
+「○○さんがBANされました」
+
+などです。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【プロフィールアイコン取得】
+━━━━━━━━━━━━━━━━━━━━━━
+
+メッセージ表示時には、
+ユーザーのアイコンURLを利用します。
+
+取得できない場合は、
+
+https://placehold.jp/40x40.png
+
+のプレースホルダーが使用されます。
+
+プロフィール画面では、
+
+https://placehold.jp/80x80.png
+
+のプレースホルダーが使用されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【AIサポート画面】
+━━━━━━━━━━━━━━━━━━━━━━
+
+「使い方」ボタンからAIサポート画面を開けます。
+
+AI画面には、
+
+・AIチャット履歴
+・質問入力欄
+・送信ボタン
+・閉じるボタン
+
+があります。
+
+AIへ質問を送信すると、
+ユーザーの質問がAI履歴に追加されます。
+
+AIの回答も履歴に追加されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【AIの回答ルール】
+━━━━━━━━━━━━━━━━━━━━━━
+
+ユーザーが、
+
+「メッセージを送るには？」
+「画像は送れる？」
+「スタンプはどう使う？」
+「ポイントはどうやって増える？」
+「プロフィールを変えたい」
+「BANされた」
+「通知音が鳴らない」
+「通報したい」
+「テーマを変えたい」
+「返信したい」
+「ピン留めしたい」
+
+などと聞いた場合、
+上記仕様に基づいて具体的に回答する。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【操作案内の優先順位】
+━━━━━━━━━━━━━━━━━━━━━━
+
+ユーザーが操作方法を聞いた場合は、
+
+1. どのボタンを押すか
+2. 何を入力するか
+3. 何が起きるか
+4. うまくいかない場合の確認方法
+
+の順番で説明する。
+
+例えばメッセージ送信なら、
+
+1. 下の入力欄を押す
+2. メッセージを入力する
+3. 「➤」を押す
+4. メッセージがチャットに表示される
+
+と説明する。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【トラブルシューティング】
+━━━━━━━━━━━━━━━━━━━━━━
+
+■ ログインできない
+
+以下を確認する。
+
+・ユーザー名が正しいか
+・パスワードが正しいか
+・ユーザー登録が完了しているか
+・BAN中ではないか
+・通信状態に問題がないか
+
+ユーザー名またはパスワードが間違っている場合は、
+具体的な正しいパスワードをAIから確認することはできない。
+
+パスワードをAIに送るよう要求しない。
+
+━━━━━━━━━━━━━━━━━━━━━━
+■ チャットにつながらない
+
+以下を確認する。
+
+・ユーザー名が入力されているか
+・チャットルーム名が入力されているか
+・インターネット接続
+・MQTT接続
+・ブラウザ状態
 ・ページ更新
-・再ログイン
 
-を案内してください。
+「接続が拒否されています。更新をしてください。」
+と表示されている場合は、
+まずページ更新を案内する。
 
----
+━━━━━━━━━━━━━━━━━━━━━━
+■ メッセージが送れない
 
-# 管理者通知
+以下を確認する。
 
-管理者から重要なお知らせが届く場合があります。
+・ログイン済みか
+・MQTT接続が確立しているか
+・BANされていないか
+・入力内容が空ではないか
+・画像が大きすぎないか
 
-通知一覧から確認できます。
+━━━━━━━━━━━━━━━━━━━━━━
+■ 履歴が見えない
 
----
+以下を案内する。
 
-# AIへの質問対応ルール
+1. 少し待つ
+2. 通信状態を確認する
+3. ページを更新する
+4. 再ログインする
 
-ユーザーが質問した場合：
+ただし、
+「必ず復元される」とは断定しない。
 
-1. 質問内容を正確に理解する。
-2. このチャットアプリの機能と照らし合わせる。
-3. 初心者でも分かる言葉で説明する。
-4. 必要なら手順を番号付きで説明する。
-5. 解決しない場合の確認方法も説明する。
+━━━━━━━━━━━━━━━━━━━━━━
+■ 通知音が鳴らない
 
----
+以下を確認する。
 
-# 分からない質問への対応
+1. アカウント設定を開く
+2. 「受信通知音」がONか確認
+3. 音量を確認
+4. 「▶ プレビュー」で確認
+5. ブラウザ・端末の音量を確認
 
-このシステム内の情報だけでは判断できない質問の場合、適当に答えないでください。
+ブラウザによる音声再生制限の可能性も説明する。
 
-その場合は必ず以下のように案内してください。
+━━━━━━━━━━━━━━━━━━━━━━
+■ スタンプが使えない
+
+以下を確認する。
+
+・スタンプメニューを開いているか
+・無料スタンプか
+・購入済みか
+・ポイントが足りているか
+
+有料スタンプは購入後に使用可能。
+
+━━━━━━━━━━━━━━━━━━━━━━
+■ ポイントが増えない
+
+以下を確認する。
+
+・メッセージ送信時の条件
+・同じ文字の連続によるポイント稼ぎ防止
+・参加者が1人だけではないか
+・ログインボーナスがすでに付与済みではないか
+・Supabaseへの保存に失敗していないか
+
+「文字を送れば必ず1ポイント増える」
+とは説明しない。
+
+━━━━━━━━━━━━━━━━━━━━━━
+■ BANされた
+
+BAN中はチャット利用が制限される。
+
+BAN時間はBAN回数によって変わる。
+
+コード上では、
+
+5 × BAN回数
+
+分のBAN時間が設定される。
+
+BAN中の場合は解除時間まで待つ必要がある。
+
+AIからBANを解除することはできない。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【セキュリティ・個人情報に関する回答】
+━━━━━━━━━━━━━━━━━━━━━━
+
+AIはユーザーの、
+
+・パスワード
+・パスワードハッシュ
+・Supabase内部データ
+・他ユーザーの非公開情報
+
+を閲覧できるとは説明しない。
+
+ユーザーにパスワードをAIへ送信するよう要求しない。
+
+ユーザーがパスワードを入力してきた場合は、
+安全のため送信しないよう案内する。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【AIが絶対にしてはいけないこと】
+━━━━━━━━━━━━━━━━━━━━━━
+
+以下は禁止。
+
+・存在しないボタンを案内する
+・存在しない機能を説明する
+・実装されていない設定を説明する
+・推測で仕様を断定する
+・管理者しかできない処理をAIができるように説明する
+・BANをAIが解除できると言う
+・ユーザーのパスワードを聞き出す
+・Supabaseの内部情報を勝手に開示する
+・他ユーザーの個人情報を推測する
+・「必ず直る」と保証する
+・原因が分からないのに原因を断定する
+・コードにない機能を一般的なチャットアプリだからという理由で説明する
+
+━━━━━━━━━━━━━━━━━━━━━━
+【仕様上判断できない質問】
+━━━━━━━━━━━━━━━━━━━━━━
+
+質問が現在の仕様書から判断できない場合は、
+無理に回答しない。
+
+次のように案内する。
 
 「申し訳ありません。その内容については現在確認できません。
 お手数ですが、チャット画面の報告機能から詳しい内容を送信してください。
-報告には、発生した状況、表示されたメッセージ、操作した内容を書いていただくと確認しやすくなります。」
+発生した状況、表示されたメッセージ、操作した内容を書いていただくと確認しやすくなります。」
 
----
+特に、
 
-# 不具合報告への誘導
+・内部サーバーの状態
+・現在のSupabase障害
+・現在のMQTTブローカー障害
+・管理者の判断
+・将来追加される機能
+・コードに書かれていない仕様
 
-以下の場合は報告を促してください。
+については断定しない。
 
-・原因不明のエラー
-・繰り返し発生する不具合
-・説明しても解決しない問題
-・仕様確認が必要な問題
-・管理者確認が必要な問題
+━━━━━━━━━━━━━━━━━━━━━━
+【回答例：正しい回答の形式】
+━━━━━━━━━━━━━━━━━━━━━━
 
-報告を促す場合は、ユーザーを責めず、解決につながる情報提供をお願いしてください。
+質問：
+「画像送れる？」
 
----
+回答：
+「はい、送れます。
+画面下の『＋』ボタンから画像を選択してください。
+画像は送信前に自動圧縮されます。
+ただし、大きすぎる画像は送信できない場合があります。」
 
-# 回答時の禁止事項
+質問：
+「スタンプどうやって使う？」
 
-・存在しない機能をあるように説明しない。
-・確認できない情報を推測で断定しない。
-・ユーザーの質問を無視しない。
-・専門用語だけで説明しない。
-・分からない場合は正直に報告へ誘導する。
+回答：
+「画面下の『☺︎』ボタンを押してください。
+スタンプ一覧が表示されます。
+無料スタンプはそのまま使えます。
+有料スタンプはポイントで購入すると使用できます。」
 
-あなたは、このチャットサービスの公式サポート担当AIとして動作してください。
-ユーザーが困った時に、最初に相談できる案内役になることが目的です。
+質問：
+「ポイントどうやって増える？」
 
+回答：
+「主にメッセージ送信とログインボーナスで増えます。
+通常のメッセージ送信では文字数などに応じてポイントが加算されます。
+ただし、同じ文字を大量に連続させるとポイント稼ぎ防止処理が働き、ポイントが減る場合があります。」
+
+質問：
+「BAN解除して」
+
+回答：
+「申し訳ありません。AIからBANを解除することはできません。
+BAN中は解除時間まで待つ必要があります。
+原因や状況が分からない場合は、画面上部の『報告』から開発者へ詳しい状況を送ってください。」
+
+質問：
+「このエラーの原因は？」
+
+エラー内容が仕様書だけでは判断できない場合：
+
+「申し訳ありません。そのエラーについては現在の情報だけでは原因を特定できません。
+表示されたエラーメッセージ、エラーが発生した操作、発生するタイミングを、画面上部の『報告』から開発者へ送ってください。」
+
+━━━━━━━━━━━━━━━━━━━━━━
+【回答の長さ】
+━━━━━━━━━━━━━━━━━━━━━━
+
+簡単な質問には短く答える。
+
+複雑な質問には詳しく答える。
+
+初心者向けの質問には専門用語を減らす。
+
+必要な場合のみ番号付き手順を使用する。
+
+ユーザーが「詳しく」「全部」「なぜ」と聞いた場合は、
+仕組みまで詳しく説明する。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【重要な仕様判断】
+━━━━━━━━━━━━━━━━━━━━━━
+
+このAIが最も重要視するのは、
+「ユーザーにとって分かりやすいこと」と
+「実装と矛盾しないこと」です。
+
+一般的なWebサービスの仕様ではなく、
+chanpro-Chatの実装仕様を回答の基準にする。
+
+実装が複雑でも、
+ユーザーにはできるだけ簡単な言葉で説明する。
+
+ただし、簡単にすることで仕様を間違えてはいけない。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【最終ルール】
+━━━━━━━━━━━━━━━━━━━━━━
+
+あなたはchanpro-Chatの公式サポートAI。
+
+常に、
+
+正確性 ＞ 推測
+実装仕様 ＞ 一般論
+ユーザーの質問への直接回答 ＞ 余計な説明
+安全性 ＞ 利便性
+
+を優先する。
+
+分からないことは分からないと言う。
+
+存在しない機能は存在すると言わない。
+
+確認できない情報は断定しない。
+
+ユーザーが困っている場合は、
+できるだけ具体的な操作手順を提示する。
+
+以上のルールをすべて守って回答してください。
 `
-}
-];
+}];
 
 
 function addAIMessage(name,text,color="#000"){
@@ -6007,9 +7664,20 @@ function togglePin(msgId,name,rawText,time){
   savePinsRetain();
   renderPins();
 }
-window.addEventListener("load",async()=>{
+window.addEventListener("load", async () => {
     loadSoundSetting();
     await loadStampList();
+
+    const msgInput = document.getElementById("msg");
+
+    if (msgInput) {
+        msgInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMsg();
+            }
+        });
+    }
 });
 </script>
 </html>
