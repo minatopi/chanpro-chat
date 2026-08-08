@@ -832,6 +832,38 @@ roomは履歴1000件保存可能で、画像は保存されません。
         #loginMessage {
             color: var(--sub-text-color);
         }
+#roomSuggestions {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    z-index: 9999;
+
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 0 0 8px 8px;
+
+    max-height: 250px;
+    overflow-y: auto;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+}
+
+.room-suggestion {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.room-suggestion:hover {
+    background: #eef2ff;
+}
+
+.room-suggestion:last-child {
+    border-bottom: none;
+}
     </style>
 </head>
 
@@ -1108,8 +1140,16 @@ z-index:999;
 
             <input id="setPassword" type="password" placeholder="パスワード">
 
-            <input id="setRoom" value="room" placeholder="参加するチャット">
+<div style="position:relative;">
+    <input
+        id="setRoom"
+        type="text"
+        value="room"
+        placeholder="チャット名を入力"
+        autocomplete="off"
+    >
 
+    <div id="roomSuggestions"></div>
             <button onclick="createUser()">
                 新規作成
             </button>
@@ -1117,6 +1157,7 @@ z-index:999;
             <button onclick="startChat()">
                 ログイン
             </button>
+</div>
 
         </div>
 
@@ -1286,22 +1327,78 @@ z-index:200;
 
                 <hr>
                 <div class="sound-setting">
-                    <label>
-                        <input type="checkbox" id="receiveSoundToggle">
-                        受信通知音
+                  <div class="sound-toggle-row">
+                    <label class="toggle-label">
+                      <input type="checkbox" id="receiveSoundToggle">
+                      <span class="toggle-switch"></span>
+                      <span>受信通知音</span>
                     </label>
-
-                    <button onclick="previewReceiveSound()">
-                        ▶ プレビュー
-                    </button>
-
-                    <br>
-
-                    <label>
-                        音量
-                        <input type="range" id="receiveSoundVolume" min="0" max="1" step="0.01">
-                    </label>
+                
+                    <button onclick="previewReceiveSound()">▶ プレビュー</button>
+                  </div>
+                
+                  <br>
+                
+                  <label>
+                    音量
+                    <input type="range" id="receiveSoundVolume" min="0" max="1" step="0.01">
+                  </label>
                 </div>
+                
+                <style>
+                  .sound-toggle-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                  }
+                
+                  .toggle-label {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    cursor: pointer;
+                    user-select: none;
+                  }
+                
+                  /* 元のチェックボックスを隠す */
+                  .toggle-label input {
+                    display: none;
+                  }
+                
+                  /* トグル本体 */
+                  .toggle-switch {
+                    position: relative;
+                    width: 46px;
+                    height: 26px;
+                    background: #ccc;
+                    border-radius: 999px;
+                    transition: background 0.2s;
+                  }
+                
+                  /* 丸い部分 */
+                  .toggle-switch::after {
+                    content: "";
+                    position: absolute;
+                    top: 3px;
+                    left: 3px;
+                    width: 20px;
+                    height: 20px;
+                    background: white;
+                    border-radius: 50%;
+                    transition: transform 0.2s;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+                  }
+                
+                  /* ON */
+                  .toggle-label input:checked + .toggle-switch {
+                    background: #2196f3;
+                  }
+                
+                  .toggle-label input:checked + .toggle-switch::after {
+                    transform: translateX(20px);
+                  }
+                </style>
+
                 <hr>
 
                 <button onclick="openDeleteModal()" style="background:#ff5555">
@@ -3025,379 +3122,387 @@ overflow-y:auto;
         }
 
         // 表示
+let lastMessageTime = null;
+
+async function addMsg(
+    name,
+    msg,
+    isMe = false,
+    time = Date.now(),
+    container = chat,
+    senderId = null,
+    msgId = null,
+    replyInfo = null
+) {
+    return messageQueue = messageQueue.then(async () => {
+
+        const chat = document.getElementById("chat");
+        const div = document.createElement("div");
+        const t = new Date(time);
+
+        const dateStr =
+            `${t.getFullYear()}/` +
+            `${String(t.getMonth() + 1).padStart(2, "0")}/` +
+            `${String(t.getDate()).padStart(2, "0")}`;
+
+        const tm =
+            `${String(t.getHours()).padStart(2, "0")}:` +
+            `${String(t.getMinutes()).padStart(2, "0")}`;
+
+        // ========================================
+        // 日付区切り
+        // ========================================
+        if (lastMessageDate !== dateStr) {
+            lastMessageDate = dateStr;
+
+            const dateDiv = document.createElement("div");
+            dateDiv.className = "date-divider";
+
+            const span = document.createElement("span");
+            span.textContent = dateStr;
+
+            dateDiv.appendChild(span);
+            chat.appendChild(dateDiv);
+        }
+
+        // ========================================
+        // システムメッセージ
+        // ========================================
+        if (name === "システム") {
+
+            div.className = "system";
+            div.textContent = `${msg} ${tm}`;
+
+        } else {
+
+            // ========================================
+            // 15分以上空いていたら <hr>
+            // ========================================
+            if (
+                lastMessageTime !== null &&
+                Math.abs(t.getTime() - lastMessageTime) >= 15 * 60 * 1000
+            ) {
+                const hr = document.createElement("hr");
+
+                hr.className = "message-time-divider";
+
+                hr.style.border = "0";
+                hr.style.borderTop = "1px solid #ddd";
+                hr.style.margin = "15px 0";
+
+                chat.appendChild(hr);
+            }
+
+            // 今回のメッセージ時刻を保存
+            lastMessageTime = t.getTime();
+
+            // ========================================
+            // メッセージ全体
+            // ========================================
+            const wrap = document.createElement("div");
+
+            wrap.className =
+                "message-wrap " +
+                (isMe ? "me" : "");
+
+            if (msgId) {
+                wrap.id = "msg-" + msgId;
+                wrap.dataset.msgid = msgId;
+            }
+
+            // ========================================
+            // ユーザー情報
+            // アイコン＋ユーザー名
+            // ========================================
+            const userHeader = document.createElement("div");
+
+            userHeader.className = "message-user";
+
+            userHeader.style.display = "flex";
+            userHeader.style.alignItems = "center";
+            userHeader.style.marginBottom = "3px";
+            userHeader.style.fontSize = "13px";
+            userHeader.style.lineHeight = "30px";
 
-        async function addMsg(
-            name,
-            msg,
-            isMe = false,
-            time = Date.now(),
-            container = chat,
-            senderId = null,
-            msgId = null,
-            replyInfo = null
-        ) {
-            return messageQueue = messageQueue.then(async () => {
-
-                const chat = document.getElementById("chat");
-                const div = document.createElement("div");
-                const t = new Date(time);
-
-                const dateStr =
-                    `${t.getFullYear()}/` +
-                    `${String(t.getMonth() + 1).padStart(2, "0")}/` +
-                    `${String(t.getDate()).padStart(2, "0")}`;
-
-                const tm =
-                    `${String(t.getHours()).padStart(2, "0")}:` +
-                    `${String(t.getMinutes()).padStart(2, "0")}`;
-
-                // ========================================
-                // 日付区切り
-                // ========================================
-                if (lastMessageDate !== dateStr) {
-                    lastMessageDate = dateStr;
-
-                    const dateDiv = document.createElement("div");
-                    dateDiv.className = "date-divider";
-
-                    const span = document.createElement("span");
-                    span.textContent = dateStr;
-
-                    dateDiv.appendChild(span);
-                    chat.appendChild(dateDiv);
-                }
-
-                // ========================================
-                // システムメッセージ
-                // ========================================
-                if (name === "システム") {
-
-                    div.className = "system";
-                    div.textContent = `${msg} ${tm}`;
-
-                } else {
-
-                    // ========================================
-                    // メッセージ全体
-                    // ========================================
-                    const wrap = document.createElement("div");
-
-                    wrap.className =
-                        "message-wrap " +
-                        (isMe ? "me" : "");
-
-                    if (msgId) {
-                        wrap.id = "msg-" + msgId;
-                        wrap.dataset.msgid = msgId;
-                    }
-
-                    // ========================================
-                    // ユーザー情報
-                    // アイコン＋ユーザー名
-                    // ※ メッセージ欄の外
-                    // ========================================
-                    const userHeader = document.createElement("div");
-
-                    userHeader.className = "message-user";
-
-                    userHeader.style.display = "flex";
-                    userHeader.style.alignItems = "center";
-                    userHeader.style.marginBottom = "3px";
-                    userHeader.style.fontSize = "13px";
-                    userHeader.style.lineHeight = "30px";
-
-                    // 自分は右側、他人は左側
-                    if (isMe) {
-                        userHeader.style.justifyContent = "flex-end";
-                    } else {
-                        userHeader.style.justifyContent = "flex-start";
-                    }
-
-                    // ========================================
-                    // アイコン
-                    // ========================================
-                    const icon = document.createElement("img");
-
-                    icon.dataset.userid = senderId;
-
-                    icon.src =
-                        "https://placehold.jp/40x40.png";
-
-                    getUserIcon(name, senderId).then(url => {
-                        icon.src = url;
-                    });
-
-                    icon.style.width = "30px";
-                    icon.style.height = "30px";
-                    icon.style.borderRadius = "50%";
-                    icon.style.objectFit = "cover";
-                    icon.style.verticalAlign = "middle";
-                    icon.style.marginRight = "5px";
-                    icon.style.flexShrink = "0";
-
-                    icon.onerror = function () {
-                        this.src =
-                            "https://placehold.jp/40x40.png";
-                    };
-
-                    // ========================================
-                    // ユーザー名
-                    // ========================================
-                    const userNameSpan =
-                        document.createElement("span");
-
-                    userNameSpan.textContent = name;
-                    userNameSpan.style.fontWeight = "bold";
-
-                    // ========================================
-                    // ユーザー情報を追加
-                    // ========================================
-                    userHeader.appendChild(icon);
-                    userHeader.appendChild(userNameSpan);
-                    // ========================================
-                    // ユーザー情報を追加
-                    //
-                    // 他人：👤 名前
-                    // 自分：名前 👤
-                    // ========================================
-                    if (isMe) {
-                        userHeader.appendChild(userNameSpan);
-                        userHeader.appendChild(icon);
-
-                        // 自分の場合はアイコンを右側にする
-                        icon.style.marginRight = "0";
-                        icon.style.marginLeft = "5px";
-                    } else {
-                        userHeader.appendChild(icon);
-                        userHeader.appendChild(userNameSpan);
-                    }
-                    // ========================================
-                    // メッセージ本体
-                    // ========================================
-                    const box = document.createElement("div");
-
-                    box.className =
-                        "msg " +
-                        (isMe ? "me" : "");
-
-                    const theme = themes[currentTheme];
-
-                    if (theme) {
-                        box.style.background =
-                            isMe ? theme.me : theme.other;
-
-                        box.style.color =
-                            theme.text;
-                    }
-
-                    // ========================================
-                    // 返信引用
-                    // ========================================
-                    if (replyInfo) {
-
-                        const quote =
-                            document.createElement("div");
-
-                        const qColor =
-                            isMe
-                                ? "#2e7d32"
-                                : "#4a7dff";
-
-                        quote.style.cssText =
-                            "border-left:3px solid " +
-                            qColor +
-                            ";" +
-                            "padding:3px 8px;" +
-                            "margin:0 0 5px;" +
-                            "font-size:12px;" +
-                            "cursor:pointer;" +
-                            "border-radius:4px;" +
-                            "max-width:220px;" +
-                            "overflow:hidden;" +
-                            "white-space:nowrap;" +
-                            "text-overflow:ellipsis;" +
-                            "color:#333";
-
-                        quote.style.background =
-                            isMe
-                                ? "#d6f5d6"
-                                : "#dde8ff";
-
-                        quote.textContent =
-                            "↩ " +
-                            (replyInfo.name || "") +
-                            ": " +
-                            (replyInfo.snippet || "");
-
-                        quote.title =
-                            "元のメッセージへ移動";
-
-                        quote.onclick = function () {
-
-                            const targetMsg =
-                                replyInfo.msgId
-                                    ? document.getElementById(
-                                        "msg-" +
-                                        replyInfo.msgId
-                                    )
-                                    : null;
-
-                            if (targetMsg) {
-
-                                targetMsg.scrollIntoView({
-                                    behavior: "smooth",
-                                    block: "center"
-                                });
-
-                                targetMsg.style.transition =
-                                    "box-shadow .4s";
-
-                                targetMsg.style.boxShadow =
-                                    "0 0 0 3px #ffd54f";
-
-                                setTimeout(() => {
-                                    targetMsg.style.boxShadow =
-                                        "";
-                                }, 1200);
-
-                            } else {
-
-                                showChatNotify(
-                                    "元のメッセージが見つかりません",
-                                    null
-                                );
-                            }
-                        };
-
-                        box.appendChild(quote);
-                    }
-
-                    // ========================================
-                    // メッセージ本文
-                    // ========================================
-                    box.appendChild(
-                        createMessageContent(msg)
-                    );
-
-                    // ========================================
-                    // 時刻・操作ボタン
-                    // ========================================
-                    const timeDiv =
-                        document.createElement("div");
-
-                    timeDiv.className =
-                        "time " +
-                        (isMe ? "me" : "other");
-
-                    // ========================================
-                    // ↩ 返信ボタン
-                    // ========================================
-                    const replyBtn =
-                        document.createElement("span");
-
-                    replyBtn.textContent = "↩";
-                    replyBtn.title = "返信";
-
-                    replyBtn.style.cssText =
-                        "cursor:pointer;" +
-                        "margin-right:6px;" +
-                        "font-size:13px;" +
-                        "opacity:.55;" +
-                        "vertical-align:middle";
-
-                    replyBtn.onclick = function (ev) {
-
-                        ev.stopPropagation();
-
-                        setReply(
-                            msgId,
-                            name,
-                            truncateForReply(msg)
-                        );
-                    };
-
-                    timeDiv.appendChild(replyBtn);
-
-                    // ========================================
-                    // 📌 ピン留めボタン
-                    // ========================================
-                    const pinned =
-                        msgId && pins[msgId];
-
-                    const pinBtn =
-                        document.createElement("span");
-
-                    pinBtn.className = "pinBtn";
-                    pinBtn.textContent = "📌";
-                    pinBtn.title = "ピン留め";
-
-                    pinBtn.style.cssText =
-                        "cursor:pointer;" +
-                        "margin-right:6px;" +
-                        "font-size:13px;" +
-                        "opacity:" +
-                        (pinned ? "1" : ".55") +
-                        ";" +
-                        "vertical-align:middle" +
-                        (
-                            pinned
-                                ? ";color:#e67e22"
-                                : ""
-                        );
-
-                    pinBtn.onclick = function (ev) {
-
-                        ev.stopPropagation();
-
-                        togglePin(
-                            msgId,
-                            name,
-                            msg
-                        );
-                    };
-
-                    timeDiv.appendChild(pinBtn);
-
-                    // ========================================
-                    // 時刻
-                    // ========================================
-                    const timeSpan =
-                        document.createElement("span");
-
-                    timeSpan.textContent = tm;
-
-                    timeDiv.appendChild(timeSpan);
-
-                    // ========================================
-                    // メッセージ全体に追加
-                    //
-                    // ユーザー情報
-                    // ↓
-                    // メッセージ
-                    // ↓
-                    // 時刻・操作
-                    // ========================================
-                    wrap.appendChild(userHeader);
-                    wrap.appendChild(box);
-                    wrap.appendChild(timeDiv);
-
-                    div.appendChild(wrap);
-                }
-
-                // ========================================
-                // チャットへ追加
-                // ========================================
-                chat.appendChild(div);
-
-                // 最新メッセージへスクロール
-                if (container === chat) {
-                    chat.scrollTop = chat.scrollHeight;
-                }
+            if (isMe) {
+                userHeader.style.justifyContent = "flex-end";
+            } else {
+                userHeader.style.justifyContent = "flex-start";
+            }
 
+            // ========================================
+            // アイコン
+            // ========================================
+            const icon = document.createElement("img");
+
+            icon.dataset.userid = senderId;
+
+            icon.src =
+                "https://placehold.jp/40x40.png";
+
+            getUserIcon(name, senderId).then(url => {
+                icon.src = url;
             });
 
-            return messageQueue;
+            icon.style.width = "30px";
+            icon.style.height = "30px";
+            icon.style.borderRadius = "50%";
+            icon.style.objectFit = "cover";
+            icon.style.verticalAlign = "middle";
+            icon.style.marginRight = "5px";
+            icon.style.flexShrink = "0";
+
+            icon.onerror = function () {
+                this.src =
+                    "https://placehold.jp/40x40.png";
+            };
+
+            // ========================================
+            // ユーザー名
+            // ========================================
+            const userNameSpan =
+                document.createElement("span");
+
+            userNameSpan.textContent = name;
+            userNameSpan.style.fontWeight = "bold";
+
+            // ========================================
+            // ユーザー情報を追加
+            // ========================================
+            if (isMe) {
+                userHeader.appendChild(userNameSpan);
+                userHeader.appendChild(icon);
+
+                icon.style.marginRight = "0";
+                icon.style.marginLeft = "5px";
+
+            } else {
+                userHeader.appendChild(icon);
+                userHeader.appendChild(userNameSpan);
+            }
+
+            // ========================================
+            // メッセージ本体
+            // ========================================
+            const box = document.createElement("div");
+
+            box.className =
+                "msg " +
+                (isMe ? "me" : "");
+
+            const theme = themes[currentTheme];
+
+            if (theme) {
+                box.style.background =
+                    isMe ? theme.me : theme.other;
+
+                box.style.color =
+                    theme.text;
+            }
+
+            // ========================================
+            // 返信引用
+            // ========================================
+            if (replyInfo) {
+
+                const quote =
+                    document.createElement("div");
+
+                const qColor =
+                    isMe
+                        ? "#2e7d32"
+                        : "#4a7dff";
+
+                quote.style.cssText =
+                    "border-left:3px solid " +
+                    qColor +
+                    ";" +
+                    "padding:3px 8px;" +
+                    "margin:0 0 5px;" +
+                    "font-size:12px;" +
+                    "cursor:pointer;" +
+                    "border-radius:4px;" +
+                    "max-width:220px;" +
+                    "overflow:hidden;" +
+                    "white-space:nowrap;" +
+                    "text-overflow:ellipsis;" +
+                    "color:#333";
+
+                quote.style.background =
+                    isMe
+                        ? "#d6f5d6"
+                        : "#dde8ff";
+
+                quote.textContent =
+                    "↩ " +
+                    (replyInfo.name || "") +
+                    ": " +
+                    (replyInfo.snippet || "");
+
+                quote.title =
+                    "元のメッセージへ移動";
+
+                quote.onclick = function () {
+
+                    const targetMsg =
+                        replyInfo.msgId
+                            ? document.getElementById(
+                                "msg-" +
+                                replyInfo.msgId
+                            )
+                            : null;
+
+                    if (targetMsg) {
+
+                        targetMsg.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+
+                        targetMsg.style.transition =
+                            "box-shadow .4s";
+
+                        targetMsg.style.boxShadow =
+                            "0 0 0 3px #ffd54f";
+
+                        setTimeout(() => {
+                            targetMsg.style.boxShadow =
+                                "";
+                        }, 1200);
+
+                    } else {
+
+                        showChatNotify(
+                            "元のメッセージが見つかりません",
+                            null
+                        );
+                    }
+                };
+
+                box.appendChild(quote);
+            }
+
+            // ========================================
+            // メッセージ本文
+            // ========================================
+            box.appendChild(
+                createMessageContent(msg)
+            );
+
+            // ========================================
+            // 時刻・操作ボタン
+            // ========================================
+            const timeDiv =
+                document.createElement("div");
+
+            timeDiv.className =
+                "time " +
+                (isMe ? "me" : "other");
+
+            // ========================================
+            // ↩ 返信ボタン
+            // ========================================
+            const replyBtn =
+                document.createElement("span");
+
+            replyBtn.textContent = "↩";
+            replyBtn.title = "返信";
+
+            replyBtn.style.cssText =
+                "cursor:pointer;" +
+                "margin-right:6px;" +
+                "font-size:13px;" +
+                "opacity:.55;" +
+                "vertical-align:middle";
+
+            replyBtn.onclick = function (ev) {
+
+                ev.stopPropagation();
+
+                setReply(
+                    msgId,
+                    name,
+                    truncateForReply(msg)
+                );
+            };
+
+            timeDiv.appendChild(replyBtn);
+
+            // ========================================
+            // 📌 ピン留めボタン
+            // ========================================
+            const pinned =
+                msgId && pins[msgId];
+
+            const pinBtn =
+                document.createElement("span");
+
+            pinBtn.className = "pinBtn";
+            pinBtn.textContent = "📌";
+            pinBtn.title = "ピン留め";
+
+            pinBtn.style.cssText =
+                "cursor:pointer;" +
+                "margin-right:6px;" +
+                "font-size:13px;" +
+                "opacity:" +
+                (pinned ? "1" : ".55") +
+                ";" +
+                "vertical-align:middle" +
+                (
+                    pinned
+                        ? ";color:#e67e22"
+                        : ""
+                );
+
+            pinBtn.onclick = function (ev) {
+
+                ev.stopPropagation();
+
+                togglePin(
+                    msgId,
+                    name,
+                    msg
+                );
+            };
+
+            timeDiv.appendChild(pinBtn);
+
+            // ========================================
+            // 時刻
+            // ========================================
+            const timeSpan =
+                document.createElement("span");
+
+            timeSpan.textContent = tm;
+
+            timeDiv.appendChild(timeSpan);
+
+            // ========================================
+            // メッセージ全体に追加
+            // ========================================
+            wrap.appendChild(userHeader);
+            wrap.appendChild(box);
+            wrap.appendChild(timeDiv);
+
+            div.appendChild(wrap);
         }
+
+        // ========================================
+        // チャットへ追加
+        // ========================================
+        chat.appendChild(div);
+
+        // 最新メッセージへスクロール
+        if (container === chat) {
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+    });
+
+    return messageQueue;
+}
+
 
 
 
@@ -5970,6 +6075,9 @@ Enterキーでも送信できます。
 日付が変わった場合、
 日付区切りが表示されます。
 
+15分以上メッセージに、時間が空いた場合、
+<hr>で区切りが表示されます。
+
 日付形式は、
 
 YYYY/MM/DD
@@ -6100,7 +6208,7 @@ JPEG形式に変換されます。
 処理が行われます。
 
 購入済みのスタンプは再購入せず使用できます。
-
+取り消しはできません。報告で伝えると、取り消してくれることもあります。
 ━━━━━━━━━━━━━━━━━━━━━━
 【ポイント】
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -6853,6 +6961,15 @@ AIへ質問を送信すると、
 ユーザーの質問がAI履歴に追加されます。
 
 AIの回答も履歴に追加されます。
+
+━━━━━━━━━━━━━━━━━━━━━━
+【参加チャット】
+━━━━━━━━━━━━━━━━━━━━━━
+参加チャットは、認証されたものは選択肢として下に出てきます。
+認証されていなくとも、そのまま参加できます。
+参加チャットの選択肢は、
+報告で、開発者に認証してもらうことで、選択肢に表示されるようになります。
+
 
 ━━━━━━━━━━━━━━━━━━━━━━
 【AIの回答ルール】
@@ -7648,21 +7765,134 @@ chanpro-Chatの実装仕様を回答の基準にする。
             savePinsRetain();
             renderPins();
         }
-        window.addEventListener("load", async () => {
-            loadSoundSetting();
-            await loadStampList();
+        
+        
+let roomSearchTimer = null;
+let selectedRoomName = "";
 
-            const msgInput = document.getElementById("msg");
+// 全チャットルームを保持
+let allChatRooms = [];
 
-            if (msgInput) {
-                msgInput.addEventListener("keydown", (event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                        event.preventDefault();
-                        sendMsg();
-                    }
-                });
+// 最初に全データを取得
+async function loadAllChatRooms() {
+    const { data, error } = await supabaseClient
+        .from("chat_rooms")
+        .select("room_name")
+        .order("room_name", { ascending: true });
+
+    if (error) {
+        console.error("チャットルーム取得エラー:", error);
+        allChatRooms = [];
+        return;
+    }
+
+    allChatRooms = data || [];
+
+    console.log("チャットルーム全件取得:", allChatRooms.length);
+}
+
+
+// JavaScript側で検索
+function searchChatRooms(keyword) {
+    const box = document.getElementById("roomSuggestions");
+
+    if (!box) return;
+
+    keyword = keyword.trim();
+
+    if (!keyword) {
+        box.innerHTML = "";
+        box.style.display = "none";
+        return;
+    }
+
+    // 全データから検索
+    const results = allChatRooms
+        .filter(room =>
+            room.room_name &&
+            room.room_name.toLowerCase().includes(keyword.toLowerCase())
+        )
+        .slice(0, 10);
+
+    box.innerHTML = "";
+
+    // 候補がない場合
+    // → 何も表示せず、そのまま入力した名前を使える
+    if (results.length === 0) {
+        box.style.display = "none";
+        return;
+    }
+
+    results.forEach(room => {
+        const item = document.createElement("div");
+
+        item.className = "room-suggestion";
+        item.textContent = room.room_name;
+
+        item.onclick = () => {
+            selectedRoomName = room.room_name;
+
+            const input = document.getElementById("setRoom");
+
+            if (input) {
+                input.value = room.room_name;
+            }
+
+            box.innerHTML = "";
+            box.style.display = "none";
+        };
+
+        box.appendChild(item);
+    });
+
+    box.style.display = "block";
+}
+
+
+
+
+
+
+
+window.addEventListener("load", async () => {
+    loadSoundSetting();
+
+    await loadStampList();
+
+    // チャットルームを最初に全件取得
+    await loadAllChatRooms();
+
+    const roomInput = document.getElementById("setRoom");
+
+    if (roomInput) {
+        roomInput.addEventListener("input", () => {
+            selectedRoomName = "";
+
+            clearTimeout(roomSearchTimer);
+
+            roomSearchTimer = setTimeout(() => {
+                searchChatRooms(roomInput.value);
+            }, 200);
+        });
+
+        roomInput.addEventListener("focus", () => {
+            if (roomInput.value.trim()) {
+                searchChatRooms(roomInput.value);
             }
         });
+    }
+
+    const msgInput = document.getElementById("msg");
+
+    if (msgInput) {
+        msgInput.addEventListener("keydown", event => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMsg();
+            }
+        });
+    }
+});
     </script>
 
 </html>
