@@ -864,6 +864,68 @@ roomは履歴1000件保存可能で、画像は保存されません。
 .room-suggestion:last-child {
     border-bottom: none;
 }
+.delete-confirm-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 99999;
+
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-confirm-modal.show {
+    display: flex;
+}
+
+.delete-confirm-box {
+    width: min(320px, calc(100% - 40px));
+    background: var(--bg-color, #fff);
+    color: var(--text-color, #333);
+
+    border-radius: 14px;
+    padding: 20px;
+
+    box-shadow: 0 10px 35px rgba(0, 0, 0, .25);
+
+    text-align: center;
+}
+
+.delete-confirm-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
+
+.delete-confirm-text {
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.delete-confirm-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.delete-confirm-buttons button {
+    flex: 1;
+    border: 0;
+    border-radius: 8px;
+    padding: 11px 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+#deleteCancelBtn {
+    background: #e5e5e5;
+    color: #333;
+}
+
+#deleteExecuteBtn {
+    background: #e53935;
+    color: white;
+}
     </style>
 </head>
 
@@ -1003,6 +1065,30 @@ z-index:9999999;
         </div>
 
     </div>
+<!-- メッセージ削除確認ダイアログ -->
+<div id="deleteConfirmModal" class="delete-confirm-modal">
+    <div class="delete-confirm-box">
+
+        <div class="delete-confirm-title">
+            メッセージを削除
+        </div>
+
+        <div class="delete-confirm-text">
+            このメッセージを削除しますか？
+        </div>
+
+        <div class="delete-confirm-buttons">
+            <button id="deleteCancelBtn">
+                キャンセル
+            </button>
+
+            <button id="deleteExecuteBtn">
+                削除
+            </button>
+        </div>
+
+    </div>
+</div>
     <!-- 通知削除確認モーダル -->
     <div id="deleteNotifyModal" style="
 display:none;
@@ -2317,7 +2403,10 @@ overflow-y:auto;
                 syncMessage(data);
 
             }
-
+            if (topic.endsWith("/delete")) {
+                handleRemoteDelete(data);
+                return;
+            }
 
             if (topic.endsWith("/namecheck")) {
 
@@ -3476,7 +3565,35 @@ async function addMsg(
             };
 
             timeDiv.appendChild(pinBtn);
-
+            // ========================================
+            // 🗑 削除ボタン
+            // 今日の自分のメッセージだけ表示
+            // ========================================
+            if (
+                isMe &&
+                msgId &&
+                new Date(time).toDateString() === new Date().toDateString()
+            ) {
+                const deleteBtn = document.createElement("span");
+            
+                deleteBtn.textContent = "🗑";
+                deleteBtn.title = "削除";
+            
+                deleteBtn.style.cssText =
+                    "cursor:pointer;" +
+                    "margin-right:6px;" +
+                    "font-size:13px;" +
+                    "opacity:.6;" +
+                    "vertical-align:middle";
+            
+                deleteBtn.onclick = function (ev) {
+                    ev.stopPropagation();
+            
+                    deleteMessage(msgId);
+                };
+            
+                timeDiv.appendChild(deleteBtn);
+            }
             // ========================================
             // 時刻
             // ========================================
@@ -5313,13 +5430,13 @@ ${point} / 100
         function saveRetainHistory() {
             if ("room" === userRoom) {
                 if (!client) return;
-                const list = Object.values(history).sort((a, b) => a.time - b.time).slice(-500);
+                const list = Object.values(history).sort((a, b) => a.time - b.time).slice(-1000);
                 client.publish(`chanpro-chat/${userRoom}/history`, JSON.stringify({ last_id: lastSyncedSupabaseId, messages: list }), { qos: 1, retain: !0 });
                 console.log("Room Retain履歴保存", list.length, "last_id:", lastSyncedSupabaseId);
                 return;
             }
             if (!client) return;
-            const list = Object.values(history).sort((a, b) => a.time - b.time).slice(-500);
+            const list = Object.values(history).sort((a, b) => a.time - b.time).slice(-1000);
             client.publish(`chanpro-chat/${userRoom}/history`, JSON.stringify(list), { qos: 1, retain: !0 }), console.log("Retain履歴保存", list.length);
         }
         function receiveRetainHistory(list) {
@@ -5780,6 +5897,147 @@ ${point} / 100
             const msgEl = document.getElementById("msg");
             if (msgEl) {
                 msgEl.focus();
+            
+            }
+        }
+        let deleteTargetMsgId = null;
+        
+        
+        function deleteMessage(msgId) {
+        
+            if (!msgId) return;
+        
+            const msg = history[msgId];
+        
+            if (!msg) {
+                showChatNotify(
+                    "メッセージが見つかりません",
+                    null
+                );
+                return;
+            }
+        
+            if (msg.id !== clientId) {
+                showChatNotify(
+                    "自分のメッセージのみ削除できます",
+                    null
+                );
+                return;
+            }
+        
+            if (
+                new Date(msg.time).toDateString() !==
+                new Date().toDateString()
+            ) {
+                showChatNotify(
+                    "今日のメッセージのみ削除できます",
+                    null
+                );
+                return;
+            }
+        
+            // 削除対象を保存
+            deleteTargetMsgId = msgId;
+        
+            // HTML確認画面を表示
+            const modal =
+                document.getElementById("deleteConfirmModal");
+        
+            if (modal) {
+                modal.classList.add("show");
+            }
+        }
+        async function executeDeleteMessage() {
+        
+            const msgId = deleteTargetMsgId;
+        
+            if (!msgId) return;
+        
+            const msg = history[msgId];
+        
+            if (!msg) {
+                closeDeleteConfirm();
+                return;
+            }
+        
+            delete history[msgId];
+        
+            const el =
+                document.getElementById("msg-" + msgId);
+        
+            if (el) {
+                el.remove();
+            }
+        
+            if (pins[msgId]) {
+        
+                delete pins[msgId];
+        
+                savePinsRetain();
+                renderPins();
+            }
+        
+            if (client) {
+        
+                client.publish(
+                    `chanpro-chat/${userRoom}/delete`,
+        
+                    JSON.stringify({
+                        type: "delete",
+                        msgId: msgId,
+                        fromId: clientId
+                    }),
+        
+                    {
+                        qos: 1
+                    }
+                );
+            }
+        
+            if (userRoom === "room") {
+        
+                await supabaseClient
+                    .from("room_chat_history")
+                    .delete()
+                    .eq("msg_id", msgId)
+                    .eq("user_id", clientId);
+            }
+        
+            closeDeleteConfirm();
+        
+            showChatNotify(
+                "メッセージを削除しました",
+                null
+            );
+        }        
+        function closeDeleteConfirm() {
+        
+            deleteTargetMsgId = null;
+        
+            const modal =
+                document.getElementById("deleteConfirmModal");
+        
+            if (modal) {
+                modal.classList.remove("show");
+            }
+        }        
+        function handleRemoteDelete(data) {
+            if (!data || !data.msgId) {
+                return;
+            }
+        
+            delete history[data.msgId];
+        
+            const el =
+                document.getElementById("msg-" + data.msgId);
+        
+            if (el) {
+                el.remove();
+            }
+        
+            if (pins[data.msgId]) {
+                delete pins[data.msgId];
+                renderPins();
             }
         }
         function clearReply() {
@@ -7911,6 +8169,19 @@ window.addEventListener("load", async () => {
         });
     }
 });
+document
+    .getElementById("deleteCancelBtn")
+    .addEventListener(
+        "click",
+        closeDeleteConfirm
+    );
+
+document
+    .getElementById("deleteExecuteBtn")
+    .addEventListener(
+        "click",
+        executeDeleteMessage
+    );
     </script>
 
 </html>
