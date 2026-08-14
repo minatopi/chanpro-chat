@@ -4206,205 +4206,72 @@ async function addMsg(
                 .join("");
 
         }
-
-        async function loginUser() {
-
-
-            const username =
-                document.getElementById("setName")
-                    .value.trim();
-
-
-            const password =
-                document.getElementById("setPassword")
-                    .value;
-
-
-
-            if (!username || !password) {
-
-                showChatNotify("入力してください", null);
-
-                return null;
-
-            }
-
-
-
-            const hash =
-                await hashPassword(password);
-
-
-
-            const { data, error } =
-
-                await supabaseClient
-                    .from("users")
-                    .select(
-                        "id,ban_until,ban_count,icon_url,profile,points"
-                    )
-                    .eq(
-                        "username",
-                        username
-                    )
-                    .eq(
-                        "password_hash",
-                        hash
-                    )
-                    .maybeSingle();
-
-
-
-            if (error) {
-
-                console.error(error);
-
-                showChatNotify(error.message, null);
-
-                return null;
-
-            }
-
-
-
-            if (!data) {
-
-                showLoginMessage(
-                    "ユーザー名またはパスワードが違います"
-                );
-
-                return null;
-
-            }
-
-
-
-            // BAN確認追加
-
-            if (
-                data.ban_until
-                &&
-                new Date(data.ban_until) > new Date()
-            ) {
-
-
-                const remain = Math.ceil(
-
-                    (
-                        new Date(data.ban_until)
-                        -
-                        new Date()
-
-                    )
-                    /
-                    60000
-
-                );
-
-
-                showLoginMessage(
-
-                    `BAN中です。残り${remain}分`
-
-                );
-
-
-                return null;
-
-            }
-
-
-
-            const streak = await updateLoginStreak(data.id);
-
-            showLoginMessage(
-                "ログイン成功",
-                "#22aa22"
-            );
-
-            return data.id;
-
-        }
-
-        async function createUser() {
-
-
-            const username =
-                document.getElementById("setName")
-                    .value.trim();
-
-
-            const password =
-                document.getElementById("setPassword")
-                    .value;
-
-
-
-            if (!username || !password) {
-
-                showChatNotify("入力してください", null);
-                return;
-
-            }
-
-
-
-            const hash =
-                await hashPassword(password);
-
-
-
-            const { data, error } =
-
-                await supabaseClient
-                    .from("users")
-                    .insert({
-
-                        username: username,
-
-                        password_hash: hash,
-                        ban_count: 0,
-                        ban_until: null
-
-
-                    })
-                    .select("id")
-                    .single();
-
-
-
-            if (error) {
-
-
-                if (error.code === "23505") {
-
-                    showLoginMessage(
-                        "このユーザー名はすでに使われています"
-                    );
-
-
-                } else {
-
-                    showLoginMessage(
-                        "作成失敗: "
-                        + error.message
-                    );
-
-                }
-
-
-                return;
-
-            }
-
-
-
-            showChatNotify(
-                "ユーザー作成完了", null
-            );
-            startChat();
-
-        }
+async function loginUser() {
+  // ★ 追加: この端末がBANされているか先に確認
+  const device = await isDeviceBanned();
+  if (device.banned) {
+    showLoginMessage("この端末は使用できません (BAN済み)");
+    return null;
+  }
+
+  const username = document.getElementById("setName").value.trim();
+  const password = document.getElementById("setPassword").value;
+  if (!username || !password) return showChatNotify("入力してください", null), null;
+
+  const hash = await hashPassword(password);
+  const { data, error } = await supabaseClient
+    .from("users")
+    .select("id,ban_until,ban_count,icon_url,profile,points")
+    .eq("username", username)
+    .eq("password_hash", hash)
+    .maybeSingle();
+
+  if (error) return console.error(error), showChatNotify(error.message, null), null;
+  if (!data) return showLoginMessage("ユーザー名またはパスワードが違います"), null;
+
+  if (data.ban_until && new Date(data.ban_until) > new Date) {
+    return showLoginMessage(`BAN中です。残り${Math.ceil((new Date(data.ban_until) - new Date) / 60000)}分`), null;
+  }
+
+  // ★ 追加: ログイン成功時にこの端末を user_devices へ保存
+  await saveUserDevice(data.id);
+
+  await updateLoginStreak(data.id);
+  showLoginMessage("ログイン成功", "#22aa22");
+  return data.id;
+}
+
+async function createUser() {
+  // ★ 追加: この端末がBANされているか先に確認
+  const device = await isDeviceBanned();
+  if (device.banned) {
+    showLoginMessage("この端末では新規作成できません (BAN済み)");
+    return;
+  }
+
+  const username = document.getElementById("setName").value.trim();
+  const password = document.getElementById("setPassword").value;
+  if (!username || !password) return void showChatNotify("入力してください", null);
+
+  const hash = await hashPassword(password);
+  const { data, error } = await supabaseClient
+    .from("users")
+    .insert({ username, password_hash: hash, ban_count: 0, ban_until: null })
+    .select("id")
+    .single();
+
+  if (error) {
+    if ("23505" === error.code) showLoginMessage("このユーザー名はすでに使われています");
+    else showLoginMessage("作成失敗: " + error.message);
+  } else {
+    // ★ 追加: 作成直後にこの端末を user_devices へ保存
+    await saveUserDevice(data.id);
+    showChatNotify("ユーザー作成完了", null);
+    startChat();
+  }
+}      
+        
+        
         function showLoginMessage(text, color = "#ff3333") {
 
             const box =
@@ -7667,7 +7534,7 @@ chanpro-Chatの実装仕様を回答の基準にする。
 
                         body: JSON.stringify({
 
-                            model: "gpt-5-mini",
+                            model: "gpt-5-nano",
 
                             messages: aiHistory
 
@@ -8116,7 +7983,413 @@ function searchChatRooms(keyword) {
 }
 
 
+/* ============================================================
+   chanpro-Chat 端末情報 / Device BAN
+   sandbox対応・完全版
+   ============================================================ */
 
+
+/* ------------------------------------------------------------
+   1. 端末情報
+   ------------------------------------------------------------ */
+
+function getDeviceInfo() {
+
+  return {
+    userAgent: navigator.userAgent || "",
+    platform: navigator.platform || "",
+    language: navigator.language || "",
+    languages: Array.from(
+      navigator.languages || []
+    ).join(","),
+
+    screen:
+      (window.screen?.width || 0) +
+      "x" +
+      (window.screen?.height || 0),
+
+    colorDepth:
+      window.screen?.colorDepth || 0,
+
+    timezone:
+      (() => {
+        try {
+          return Intl.DateTimeFormat()
+            .resolvedOptions()
+            .timeZone || "";
+        } catch (e) {
+          return "";
+        }
+      })(),
+
+    timezoneOffset:
+      new Date().getTimezoneOffset(),
+
+    hardwareConcurrency:
+      navigator.hardwareConcurrency || 0,
+
+    deviceMemory:
+      navigator.deviceMemory || 0,
+
+    maxTouchPoints:
+      navigator.maxTouchPoints || 0,
+
+    cookieEnabled:
+      navigator.cookieEnabled ?? false,
+
+    doNotTrack:
+      navigator.doNotTrack || null
+  };
+}
+
+
+/* ------------------------------------------------------------
+   2. SHA-256
+   ※ これを必ず定義する
+   ------------------------------------------------------------ */
+
+async function sha256(text) {
+
+  if (
+    !window.crypto ||
+    !window.crypto.subtle
+  ) {
+    throw new Error(
+      "この環境ではcrypto.subtleが使用できません"
+    );
+  }
+
+  const data =
+    new TextEncoder().encode(text);
+
+  const hash =
+    await window.crypto.subtle.digest(
+      "SHA-256",
+      data
+    );
+
+  return Array
+    .from(new Uint8Array(hash))
+    .map(
+      b =>
+        b
+          .toString(16)
+          .padStart(2, "0")
+    )
+    .join("");
+}
+
+
+/* ------------------------------------------------------------
+   3. localStorageを安全に使う
+   ------------------------------------------------------------ */
+
+function getLocalDeviceKey() {
+
+  try {
+
+    const key =
+      window.localStorage.getItem(
+        "deviceKey"
+      );
+
+    if (key) {
+      return key;
+    }
+
+    const newKey =
+      crypto.randomUUID();
+
+    window.localStorage.setItem(
+      "deviceKey",
+      newKey
+    );
+
+    return newKey;
+
+  } catch (e) {
+
+    /*
+     * sandbox iframeではここに来る
+     */
+
+
+
+    return null;
+  }
+}
+
+
+/* ------------------------------------------------------------
+   4. sessionStorageも安全に試す
+   ------------------------------------------------------------ */
+
+function getSessionDeviceKey() {
+
+  try {
+
+    const key =
+      window.sessionStorage.getItem(
+        "deviceKey"
+      );
+
+    if (key) {
+      return key;
+    }
+
+    const newKey =
+      crypto.randomUUID();
+
+    window.sessionStorage.setItem(
+      "deviceKey",
+      newKey
+    );
+
+    return newKey;
+
+  } catch (e) {
+
+
+
+    return null;
+  }
+}
+
+
+/* ------------------------------------------------------------
+   5. deviceKey取得
+   ------------------------------------------------------------ */
+
+function getDeviceKey() {
+
+  /*
+   * ① localStorage
+   */
+
+  const localKey =
+    getLocalDeviceKey();
+
+  if (localKey) {
+    return localKey;
+  }
+
+
+  /*
+   * ② sessionStorage
+   */
+
+  const sessionKey =
+    getSessionDeviceKey();
+
+  if (sessionKey) {
+    return sessionKey;
+  }
+
+
+  /*
+   * ③ Storageが完全に使用不可
+   *
+   * sandbox環境ではここ
+   */
+
+  return null;
+}
+
+
+/* ------------------------------------------------------------
+   6. Device Hash
+   ------------------------------------------------------------ */
+
+async function getDeviceHash() {
+
+  const info =
+    getDeviceInfo();
+
+  const deviceKey =
+    getDeviceKey();
+
+
+  /*
+   * Storageが使える場合だけ
+   * deviceKeyを含める
+   */
+
+  if (deviceKey) {
+
+    info.deviceKey =
+      deviceKey;
+
+  }
+
+
+  /*
+   * JSON文字列化
+   */
+
+  const raw =
+    JSON.stringify(info);
+
+
+  /*
+   * SHA-256
+   */
+
+  return await sha256(raw);
+}
+
+
+/* ------------------------------------------------------------
+   7. BAN確認
+   ------------------------------------------------------------ */
+
+async function isDeviceBanned() {
+
+  try {
+
+    const hash =
+      await getDeviceHash();
+
+
+    const { data, error } =
+      await supabaseClient
+        .from("banned_devices")
+        .select(
+          "id, reason"
+        )
+        .eq(
+          "device_hash",
+          hash
+        )
+        .maybeSingle();
+
+
+    if (error) {
+
+      console.error(
+        "端末BAN確認エラー:",
+        error
+      );
+
+      /*
+       * BAN確認に失敗した場合、
+       * とりあえずログイン処理自体は止める
+       *
+       * 必要ならここをbanned:trueにして
+       * fail-closedにもできます。
+       */
+
+      return {
+        banned: false,
+        reason: null,
+        hash
+      };
+    }
+
+
+    if (data) {
+
+      return {
+        banned: true,
+        reason:
+          data.reason ||
+          "この端末は使用できません",
+        hash
+      };
+
+    }
+
+
+    return {
+      banned: false,
+      reason: null,
+      hash
+    };
+
+  } catch (e) {
+
+    console.error(
+      "端末BAN確認失敗:",
+      e
+    );
+
+    return {
+      banned: false,
+      reason: null,
+      hash: null
+    };
+  }
+}
+
+
+/* ------------------------------------------------------------
+   8. ユーザー端末保存
+   ------------------------------------------------------------ */
+
+async function saveUserDevice(userId) {
+
+  try {
+
+    if (!userId) {
+      return;
+    }
+
+
+    const hash =
+      await getDeviceHash();
+
+
+    const info =
+      getDeviceInfo();
+
+
+    const { error } =
+      await supabaseClient
+        .from("user_devices")
+        .upsert(
+          {
+            user_id:
+              userId,
+
+            device_hash:
+              hash,
+
+            device_info:
+              info,
+
+            last_login_at:
+              new Date().toISOString()
+          },
+          {
+            onConflict:
+              "user_id,device_hash"
+          }
+        );
+
+
+    if (error) {
+
+      console.error(
+        "端末情報保存エラー:",
+        error
+      );
+
+    } else {
+
+      console.log(
+        "端末情報を保存しました:",
+        hash
+      );
+
+    }
+
+  } catch (e) {
+
+    console.error(
+      "端末情報保存失敗:",
+      e
+    );
+  }
+}
 
 
 
