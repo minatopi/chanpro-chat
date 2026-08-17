@@ -1572,7 +1572,7 @@ overflow-y:auto;
                     <input id="msg" placeholder="メッセージ">
 
 
-                    <input type="file" id="imageInput" accept="image/*" style="display:none"
+                    <input type="file" id="imageInput" accept="image/*" multiple style="display:none"
                         onchange="loadImage(event)">
 
 
@@ -1674,7 +1674,7 @@ overflow-y:auto;
                 console.log("プレビュー再生失敗:", e);
             });
         }
-        let imageData = null;
+        let imageData = [];
         const themes = {
             blue: {},
             green: {},
@@ -1981,302 +1981,260 @@ overflow-y:auto;
         }
         // 開始
 
-        async function startChat() {
-            const userId = await loginUser();
+async function startChat() { 
+    const userId = await loginUser(); 
+
+    if (!userId) { 
+        return; 
+    } 
+
+    userName = 
+        document.getElementById("setName") 
+            .value.trim(); 
+
+    userRoom = 
+        document.getElementById("setRoom") 
+            .value.trim(); 
+
+    document.getElementById("top").style.display = "flex"; 
+
+    if (!userName || !userRoom) { 
+        showChatNotify("入力してください", null); 
+        return; 
+    } 
+
+    // =====================================================
+    // Mbrs-room は認証済みユーザー（verified = true）のみ参加可能
+    // =====================================================
+    if (userRoom === "Mbrs-room") { 
+
+        const { data: verifiedUser, error: verifiedError } = 
+            await supabaseClient 
+                .from("users") 
+                .select("verified") 
+                .eq("id", userId) 
+                .single(); 
+
+        if (verifiedError) { 
+            console.error("認証状態の確認に失敗しました:", verifiedError); 
+            showChatNotify("認証状態を確認できませんでした", null); 
+            return; 
+        } 
+
+        if (verifiedUser?.verified !== true) { 
+            showChatNotify(
+                "Mbrs-roomは認証済みユーザーのみ参加できます",
+                null
+            ); 
+            return; 
+        } 
+    } 
+
+    clientId = 
+        "id-" + userId; 
+
+    const { data: userData, error } = await supabaseClient 
+        .from("users") 
+        .select("icon_url,profile,username,points,stamp_list") 
+        .eq("id", userId) 
+        .single(); 
+
+    if (userData) { 
+        myProfile = { 
+            icon_url: userData.icon_url || "", 
+            profile: userData.profile || "", 
+            points: userData.points || 0, 
+            stamp_list: userData.stamp_list || [] 
+        }; 
+
+        userName = userData.username || userName; 
+    } 
+
+    document.getElementById("users") 
+        .innerText = "接続中…"; 
+
+    started = true; 
+
+    document.getElementById("setup") 
+        .style.display = "none"; 
+
+    document.getElementById("top") 
+        .style.display = "block"; 
+
+    document.getElementById("profile") 
+        .innerText = 
+        `${userName} / ${userRoom}`; 
+
+    client = mqtt.connect( 
+        "wss://broker.hivemq.com:8884/mqtt", 
+        { 
+            clientId: clientId, 
+            clean: true, 
+
+            // 接続維持（秒） 
+            keepalive: 30, 
+
+            // 接続タイムアウト 
+            connectTimeout: 10000, 
+
+            // 自動再接続 
+            reconnectPeriod: 3000, 
+
+            will: { 
+                topic: 
+                    `chanpro-chat/${userRoom}/offline`, 
+
+                payload: 
+                    JSON.stringify({ 
+                        id: clientId, 
+                        name: userName, 
+                        type: "offline" 
+                    }), 
+
+                qos: 1, 
+                retain: false 
+            } 
+        } 
+    ); 
+
+    client.on("connect", async () => { 
+
+        console.log("MQTT connected"); 
+
+        client.subscribe( 
+            `chanpro-chat/${userRoom}/#`, 
+            { qos: 1 } 
+        ); 
+
+        const devUid = clientId.replace("id-", ""); 
+
+        developerHistoryTopic = 
+            `chanpro-dev/user/${devUid}/history`; 
+
+        client.subscribe( 
+            developerHistoryTopic, 
+            { qos: 1 } 
+        ); 
+
+        client.subscribe( 
+            `chanpro-dev/user/${devUid}`, 
+            { qos: 1 } 
+        ); 
 
-            if (!userId) {
-                return;
-            }
+        const settingTopic = 
+            `chanpro-settings/user/${encodeURIComponent(userName)}`; 
 
-            userName =
-                document.getElementById("setName")
-                    .value.trim();
+        client.subscribe( 
+            settingTopic, 
+            { qos: 1 } 
+        ); 
 
+        console.log( 
+            "通知履歴購読:", 
+            developerHistoryTopic 
+        ); 
 
-            userRoom =
-                document.getElementById("setRoom")
-                    .value.trim();
-            document.getElementById("top").style.display = "flex";
+        nameConflict = false; 
+        nameCheckFinished = false; 
 
-            if (!userName || !userRoom) {
+        // 名前確認
+        client.publish( 
+            `chanpro-chat/${userRoom}/namecheck`, 
+            JSON.stringify({ 
+                type: "check", 
+                id: clientId, 
+                name: userName 
+            }), 
+            { 
+                qos: 1 
+            } 
+        ); 
 
-                showChatNotify("入力してください", null);
-                return;
+        /* 
+            名前確認待ち
+            2秒固定
+        */ 
+        setTimeout(async () => { 
 
-            }
+            nameCheckFinished = true; 
 
+            if (nameConflict) { 
 
+                showChatNotify(
+                    "同じユーザー名がすでに使用されています",
+                    null
+                ); 
 
-            clientId =
-                "id-" + userId;
-            const { data: userData, error } = await supabaseClient
-                .from("users")
-                .select("icon_url,profile,username,points,stamp_list")
-                .eq("id", userId)
-                .single();
+                client.end(true); 
+                location.reload(); 
+                return; 
+            } 
 
-            if (userData) {
-                myProfile = {
-                    icon_url: userData.icon_url || "",
-                    profile: userData.profile || "",
-                    points: userData.points || 0,
-                    stamp_list: userData.stamp_list || []
-                };
+            // 履歴取得
+            await loadOrSyncHistory(); 
+            await loadDeveloperMessages(); 
+            await new Promise(
+                resolve => setTimeout(resolve, 500)
+            ); 
 
-                userName = userData.username || userName;
-            }
+            pendingJoinMessages = []; 
 
+            knownMembers[clientId] = true; 
 
-            document.getElementById("users")
-                .innerText =
-                "接続中…";
+            // 自分の参加通知
+            addMsg( 
+                "システム", 
+                `${userName}さんが参加しました`, 
+                false, 
+                Date.now() 
+            ); 
 
+            announce(); 
 
+            const sendButton = 
+                document.getElementById("sendButton"); 
 
-            started = true;
+            if (sendButton) { 
+                sendButton.disabled = false; 
+            } 
 
+            startBanWatcher(); 
 
+            membersLoading = false; 
+            showMembers(); 
 
-            document.getElementById("setup")
-                .style.display = "none";
+        }, 1000); 
+    }); 
 
+    client.on( 
+        "message", 
+        receiveMQTT 
+    ); 
 
-            document.getElementById("top")
-                .style.display = "block";
+    client.on("reconnect", () => { 
 
+        document.getElementById("users") 
+            .innerText = "再接続中…"; 
 
-            document.getElementById("profile")
-                .innerText =
-                `${userName} / ${userRoom}`;
+    }); 
 
+    client.on("offline", () => { 
 
+        document.getElementById("users") 
+            .innerText = "通信待機中…"; 
 
+    }); 
 
-            client = mqtt.connect(
+    client.on("error", (err) => { 
 
-                "wss://broker.hivemq.com:8884/mqtt",
+        document.getElementById("users") 
+            .innerText = 
+            "接続が拒否されています。更新をしてください。"; 
 
-                {
+        console.log("MQTT error", err); 
 
-                    clientId: clientId,
-
-                    clean: true,
-
-
-                    // 接続維持（秒）
-                    keepalive: 30,
-
-
-                    // 接続タイムアウト
-                    connectTimeout: 10000,
-
-
-                    // 自動再接続
-                    reconnectPeriod: 3000,
-
-
-                    will: {
-
-                        topic:
-                            `chanpro-chat/${userRoom}/offline`,
-
-
-                        payload:
-                            JSON.stringify({
-
-                                id: clientId,
-
-                                name: userName,
-
-                                type: "offline"
-
-                            }),
-
-
-                        qos: 1,
-
-                        retain: false
-
-                    }
-
-                }
-
-            );
-
-
-
-
-
-            client.on("connect", async () => {
-
-                console.log("MQTT connected");
-
-                client.subscribe(`chanpro-chat/${userRoom}/#`, { qos: 1 });
-
-                const devUid = clientId.replace("id-", "");
-
-                developerHistoryTopic =
-                    `chanpro-dev/user/${devUid}/history`;
-
-                client.subscribe(
-                    developerHistoryTopic,
-                    { qos: 1 }
-                );
-
-                client.subscribe(
-                    `chanpro-dev/user/${devUid}`,
-                    { qos: 1 }
-                );
-                const settingTopic =
-                    `chanpro-settings/user/${encodeURIComponent(userName)}`;
-
-                client.subscribe(
-                    settingTopic,
-                    { qos: 1 }
-                );
-                console.log(
-                    "通知履歴購読:",
-                    developerHistoryTopic
-                );
-
-
-
-                nameConflict = false;
-
-                nameCheckFinished = false;
-
-
-
-                // 名前確認
-
-                client.publish(
-
-                    `chanpro-chat/${userRoom}/namecheck`,
-
-                    JSON.stringify({
-
-                        type: "check",
-
-                        id: clientId,
-
-                        name: userName
-
-                    }),
-
-                    {
-
-                        qos: 1
-
-                    }
-
-                );
-
-
-
-                /*
-                    名前確認待ち
-                    2秒固定
-                */
-
-                setTimeout(async () => {
-
-                    nameCheckFinished = true;
-
-
-                    if (nameConflict) {
-
-                        showChatNotify("同じユーザー名がすでに使用されています", null);
-
-                        client.end(true);
-
-                        location.reload();
-
-                        return;
-
-                    }
-
-
-                    // 履歴取得
-                    await loadOrSyncHistory();
-                    await loadDeveloperMessages();
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    pendingJoinMessages = [];
-
-
-                    knownMembers[clientId] = true;
-
-
-                    // 自分の参加通知
-                    addMsg(
-                        "システム",
-                        `${userName}さんが参加しました`,
-                        false,
-                        Date.now()
-                    );
-
-
-                    announce();
-
-
-                    const sendButton = document.getElementById("sendButton");
-
-                    if (sendButton) {
-
-                        sendButton.disabled = false;
-
-                    }
-
-
-                    startBanWatcher();
-
-
-                    membersLoading = false;
-                    showMembers();
-
-
-                }, 1000);
-
-
-            });
-
-
-
-
-
-
-            client.on(
-
-                "message",
-
-                receiveMQTT
-
-            );
-
-            client.on("reconnect", () => {
-
-                document.getElementById("users")
-                    .innerText = "再接続中…";
-
-            });
-
-
-            client.on("offline", () => {
-
-                document.getElementById("users")
-                    .innerText = "通信待機中…";
-
-            });
-
-
-            client.on("error", (err) => {
-                document.getElementById("users")
-                    .innerText = "接続が拒否されています。更新をしてください。";
-                console.log("MQTT error", err);
-
-            });
-
-
-        }
+    }); 
+}
 
 
 
@@ -2899,30 +2857,127 @@ overflow-y:auto;
 
 
         // 送信
-        async function sendMsg() {
-            const uid = clientId.replace("id-", ""), { data: data, error: error } = await supabaseClient.from("users").select("ban_until").eq("id", uid).maybeSingle();
-            if (console.log("BAN確認", uid, data), error) return void console.log(error);
-            if (data?.ban_until) { const banTime = new Date(data.ban_until).getTime(); if (console.log("BAN時間比較", banTime, Date.now(), banTime > Date.now()), banTime > Date.now()) { showChatNotify("BANされています", null), isBanned = !0; const btn = document.getElementById("sendButton"); return void (btn && (btn.disabled = !0)) } }
-            const e = document.getElementById("msg"); let t = e.value.trim();
-            if (!t && !imageData) return;
-            imageData && (t += "\n" + imageData);
-            const n = { msgId: crypto.randomUUID(), id: clientId, name: userName, icon_url: myProfile.icon_url, profile: myProfile.profile, points: myProfile.points, msg: t, time: Date.now() };
-            if (replyTarget) n.replyTo = { msgId: replyTarget.msgId, name: replyTarget.name, snippet: replyTarget.snippet };
-            history[n.msgId] = n,
-                client && client.publish(`chanpro-chat/${userRoom}/msg`, JSON.stringify(n), { qos: 1 }),
-                saveChatHistory(
-                    userName,
-                    clientId,
-                    t,
-                    n.msgId,
-                    n.replyTo || null
-                ),
-                await addPoints(t),
-                addMsg(userName, t, !0, n.time, chat, clientId, n.msgId, n.replyTo),
-                clearReply(),
-                e.value = "", imageData = null, document.getElementById("imagePreview").innerHTML = "", document.getElementById("imageInput").value = "",
-                1 === Object.keys(members).length && saveRetainHistory()
+async function sendMsg() {
+    const uid = clientId.replace("id-", "");
+
+    const { data: data, error: error } =
+        await supabaseClient
+            .from("users")
+            .select("ban_until")
+            .eq("id", uid)
+            .maybeSingle();
+
+    if (console.log("BAN確認", uid, data), error) {
+        return void console.log(error);
+    }
+
+    if (data?.ban_until) {
+        const banTime = new Date(data.ban_until).getTime();
+
+        if (
+            console.log(
+                "BAN時間比較",
+                banTime,
+                Date.now(),
+                banTime > Date.now()
+            ),
+            banTime > Date.now()
+        ) {
+            showChatNotify("BANされています", null);
+            isBanned = true;
+
+            const btn = document.getElementById("sendButton");
+            return void (btn && (btn.disabled = !0));
         }
+    }
+
+    const e = document.getElementById("msg");
+    let t = e.value.trim();
+
+    // imageData は配列
+    const hasImages = Array.isArray(imageData) && imageData.length > 0;
+
+    if (!t && !hasImages) return;
+
+    // 複数画像をメッセージに追加
+    if (hasImages) {
+        if (t) {
+            t += "\n";
+        }
+
+        t += imageData.join("\n");
+    }
+
+    const n = {
+        msgId: crypto.randomUUID(),
+        id: clientId,
+        name: userName,
+        icon_url: myProfile.icon_url,
+        profile: myProfile.profile,
+        points: myProfile.points,
+        msg: t,
+        time: Date.now()
+    };
+
+    if (replyTarget) {
+        n.replyTo = {
+            msgId: replyTarget.msgId,
+            name: replyTarget.name,
+            snippet: replyTarget.snippet
+        };
+    }
+
+    history[n.msgId] = n;
+
+    if (client) {
+        client.publish(
+            `chanpro-chat/${userRoom}/msg`,
+            JSON.stringify(n),
+            { qos: 1 }
+        );
+    }
+
+    saveChatHistory(
+        userName,
+        clientId,
+        t,
+        n.msgId,
+        n.replyTo || null
+    );
+
+    await addPoints(t);
+
+    addMsg(
+        userName,
+        t,
+        !0,
+        n.time,
+        chat,
+        clientId,
+        n.msgId,
+        n.replyTo
+    );
+
+    clearReply();
+
+    // 入力・画像をリセット
+    e.value = "";
+    imageData = [];
+
+    const preview = document.getElementById("imagePreview");
+    if (preview) {
+        preview.innerHTML = "";
+    }
+
+    const imageInput = document.getElementById("imageInput");
+    if (imageInput) {
+        imageInput.value = "";
+    }
+
+    if (1 === Object.keys(members).length) {
+        saveRetainHistory();
+    }
+}
         // 同期要求
 
         function requestSync() {
@@ -3914,35 +3969,35 @@ async function addMsg(
             document.getElementById("imageInput").click();
 
         }
-        function loadImage(event) {
+function loadImage(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
-            const file = event.target.files[0];
+    imageData = [];
 
-            if (!file)
-                return;
+    let loaded = 0;
 
+    files.forEach(file => {
+        if (!file.type.startsWith("image/")) {
+            loaded++;
+            return;
+        }
 
-            const img = new Image();
+        const img = new Image();
+        const reader = new FileReader();
 
-            const reader = new FileReader();
-
-
-            reader.onload = function (e) {
-
-                img.onload = function () {
-
-                    compressImage(img);
-
-                };
-
-                img.src = e.target.result;
-
+        reader.onload = function(ev) {
+            img.onload = function() {
+                compressImage(img);
+                loaded++;
             };
 
+            img.src = ev.target.result;
+        };
 
-            reader.readAsDataURL(file);
-
-        }
+        reader.readAsDataURL(file);
+    });
+}
         function compressImage(img) {
 
             const canvas =
@@ -4096,14 +4151,14 @@ async function addMsg(
                     "画像を500KB以下にできませんでした", null
                 );
 
-                imageData = null;
+                imageData = [];
                 return;
 
             }
 
 
 
-            imageData = result;
+            imageData.push(result);
 
             showImagePreview(result);
 
@@ -4115,75 +4170,66 @@ async function addMsg(
 
         }
 
-        function showImagePreview(src) {
+function showImagePreview() {
 
-            const preview =
-                document.getElementById("imagePreview");
+    const preview =
+        document.getElementById("imagePreview");
 
+    preview.innerHTML = "";
 
-            preview.innerHTML = "";
+    imageData.forEach((src, index) => {
 
+        const box =
+            document.createElement("div");
 
-            const box =
-                document.createElement("div");
+        box.style.display = "flex";
+        box.style.alignItems = "center";
+        box.style.gap = "5px";
+        box.style.marginTop = "8px";
 
-            box.style.display = "flex";
-            box.style.alignItems = "center";
-            box.style.gap = "5px";
-            box.style.marginTop = "8px";
+        const img =
+            document.createElement("img");
 
+        img.src = src;
 
+        img.style.maxWidth = "150px";
+        img.style.maxHeight = "150px";
+        img.style.borderRadius = "10px";
 
-            const img =
-                document.createElement("img");
+        const cancel =
+            document.createElement("button");
 
+        cancel.textContent = "×";
 
-            img.src = src;
+        cancel.style.background = "#ff5555";
+        cancel.style.color = "white";
+        cancel.style.border = "none";
+        cancel.style.borderRadius = "50%";
+        cancel.style.width = "30px";
+        cancel.style.height = "30px";
+        cancel.style.cursor = "pointer";
 
+        cancel.onclick = function () {
 
-            img.style.maxWidth = "200px";
-            img.style.maxHeight = "200px";
-            img.style.borderRadius = "10px";
+            imageData.splice(index, 1);
 
+            showImagePreview();
 
+            if (imageData.length === 0) {
+                document.getElementById("imageInput").value = "";
+            }
 
-            const cancel =
-                document.createElement("button");
+        };
 
+        box.appendChild(img);
+        box.appendChild(cancel);
 
-            cancel.textContent = "×";
-
-
-            cancel.style.background = "#ff5555";
-            cancel.style.color = "white";
-            cancel.style.border = "none";
-            cancel.style.borderRadius = "50%";
-            cancel.style.width = "30px";
-            cancel.style.height = "30px";
-            cancel.style.cursor = "pointer";
-
-
-            cancel.onclick = function () {
-
-                imageData = null;
-
-                preview.innerHTML = "";
-
-                document.getElementById("imageInput")
-                    .value = "";
-
-            };
-
+        preview.appendChild(box);
+    });
+}
 
 
-            box.appendChild(img);
 
-            box.appendChild(cancel);
-
-
-            preview.appendChild(box);
-
-        }
 
         async function hashPassword(password) {
 
