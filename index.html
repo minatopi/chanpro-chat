@@ -2920,7 +2920,16 @@ overflow-y:auto;
                 ),
                 await addPoints(t),
                 // 既存: addMsg(userName,i,!0,s.time,chat,clientId,s.msgId,s.replyTo), clearReply(), ...
-                await addMsg(userName, t, true, n.time, null, clientId, n.msgId, n.replyTo || null);
+                await addMsg(
+                    userName,
+                    t,
+                    true,
+                    n.time,
+                    document.getElementById("chat"),
+                    clientId,
+                    n.msgId,
+                    n.replyTo || null
+                );
                 // --- ここに追加 ---
                 if (typeof updatePointRank === "function") {
                   updatePointRank();
