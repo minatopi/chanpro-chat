@@ -2920,7 +2920,7 @@ overflow-y:auto;
                 ),
                 await addPoints(t),
                 // 既存: addMsg(userName,i,!0,s.time,chat,clientId,s.msgId,s.replyTo), clearReply(), ...
-                addMsg(userName,i,!0,s.time,chat,clientId,s.msgId,s.replyTo);
+                await addMsg(userName, t, true, n.time, null, clientId, n.msgId, n.replyTo || null);
                 // --- ここに追加 ---
                 if (typeof updatePointRank === "function") {
                   updatePointRank();
@@ -5282,7 +5282,7 @@ function updatePointBar(point) {
         }
         async function updatePointRank() {
 
-            console.log("Hello");
+            console.log("順位習得");
 
 
             const uid = clientId.replace("id-", "");
