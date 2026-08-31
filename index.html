@@ -2808,7 +2808,7 @@ gap:5px;
         }
 
 
-        async function addPoints(text) {
+async function addPoints(text) {
 
             // 参加者が2人未満ならポイントなし
             if (Object.keys(members).length < 2) {
@@ -2910,46 +2910,136 @@ gap:5px;
         }
 
 
+
         // 送信
-        async function sendMsg() {
-            const uid = clientId.replace("id-", ""), { data: data, error: error } = await supabaseClient.from("users").select("ban_until").eq("id", uid).maybeSingle();
-            if (console.log("BAN確認", uid, data), error) return void console.log(error);
-            if (data?.ban_until) { const banTime = new Date(data.ban_until).getTime(); if (console.log("BAN時間比較", banTime, Date.now(), banTime > Date.now()), banTime > Date.now()) { showChatNotify("BANされています", null), isBanned = !0; const btn = document.getElementById("sendButton"); return void (btn && (btn.disabled = !0)) } }
-            const e = document.getElementById("msg"); let t = e.value.trim();
-            if (!t && !imageData) return;
-            imageData && (t += "\n" + imageData);
-            const n = { msgId: crypto.randomUUID(), id: clientId, name: userName, icon_url: myProfile.icon_url, profile: myProfile.profile, points: myProfile.points, msg: t, time: Date.now() };
-            if (replyTarget) n.replyTo = { msgId: replyTarget.msgId, name: replyTarget.name, snippet: replyTarget.snippet };
-            history[n.msgId] = n,
-                client && client.publish(`chanpro-chat/${userRoom}/msg`, JSON.stringify(n), { qos: 1 }),
-                saveChatHistory(
-                    userName,
-                    clientId,
-                    t,
-                    n.msgId,
-                    n.replyTo || null
-                ),
-                await addPoints(t),
-                // 既存: addMsg(userName,i,!0,s.time,chat,clientId,s.msgId,s.replyTo), clearReply(), ...
-                await addMsg(
-                    userName,
-                    t,
-                    true,
-                    n.time,
-                    document.getElementById("chat"),
-                    clientId,
-                    n.msgId,
-                    n.replyTo || null
-                );
-                // --- ここに追加 ---
-                if (typeof updatePointRank === "function") {
-                  updatePointRank();
-                }
-                clearReply();
-                
-                e.value = "", imageData = null, document.getElementById("imagePreview").innerHTML = "", document.getElementById("imageInput").value = "",
-                1 === Object.keys(members).length && saveRetainHistory()
+async function sendMsg() {
+    const uid = clientId.replace("id-", ""),
+        { data: data, error: error } = await supabaseClient
+            .from("users")
+            .select("ban_until")
+            .eq("id", uid)
+            .maybeSingle();
+
+    if (console.log("BAN確認", uid, data), error)
+        return void console.log(error);
+
+    if (data?.ban_until) {
+        const banTime = new Date(data.ban_until).getTime();
+
+        if (
+            console.log(
+                "BAN時間比較",
+                banTime,
+                Date.now(),
+                banTime > Date.now()
+            ),
+            banTime > Date.now()
+        ) {
+            showChatNotify("BANされています", null);
+            isBanned = !0;
+
+            const btn = document.getElementById("sendButton");
+            return void (btn && (btn.disabled = !0));
         }
+    }
+
+    const e = document.getElementById("msg");
+    let t = e.value.trim();
+
+    if (!t && !imageData)
+        return;
+
+
+    // =========================
+    // 100文字制限チェック
+    // 画像・URLを除いたテキストだけを数える
+    // =========================
+    const cleanText = removeImageAndUrl(t);
+    const textLength = [...cleanText].length;
+
+    if (textLength >= 200) {
+        showChatNotify(
+            `メッセージは199文字以内にしてください（現在 ${textLength}文字）`,
+            null
+        );
+        return;
+    }
+
+
+    // =========================
+    // 画像データを追加
+    // =========================
+    imageData && (t += "\n" + imageData);
+
+
+    const n = {
+        msgId: crypto.randomUUID(),
+        id: clientId,
+        name: userName,
+        icon_url: myProfile.icon_url,
+        profile: myProfile.profile,
+        points: myProfile.points,
+        msg: t,
+        time: Date.now()
+    };
+
+    if (replyTarget)
+        n.replyTo = {
+            msgId: replyTarget.msgId,
+            name: replyTarget.name,
+            snippet: replyTarget.snippet
+        };
+
+
+    history[n.msgId] = n;
+
+    client &&
+        client.publish(
+            `chanpro-chat/${userRoom}/msg`,
+            JSON.stringify(n),
+            { qos: 1 }
+        );
+
+    saveChatHistory(
+        userName,
+        clientId,
+        t,
+        n.msgId,
+        n.replyTo || null
+    );
+
+    await addPoints(t);
+
+
+    await addMsg(
+        userName,
+        t,
+        true,
+        n.time,
+        document.getElementById("chat"),
+        clientId,
+        n.msgId,
+        n.replyTo || null
+    );
+
+
+    // ポイントランキング更新
+    if (typeof updatePointRank === "function") {
+        updatePointRank();
+    }
+
+
+    clearReply();
+
+    e.value = "";
+    imageData = null;
+
+    document.getElementById("imagePreview").innerHTML = "";
+    document.getElementById("imageInput").value = "";
+
+    1 === Object.keys(members).length && saveRetainHistory();
+}
+
         // 同期要求
 
         function requestSync() {
@@ -5455,14 +5545,14 @@ function updatePointBar(point) {
 
             area.innerHTML = "";
 
-            area.style.display = "grid";
-            area.style.gridTemplateColumns = "repeat(5, 70px)";
-            area.style.gap = "5px";
-            area.style.height = "300px";
-            area.style.maxHeight = "300px";
-            area.style.overflowY = "auto";
-            area.style.overflowX = "hidden";
-            area.style.boxSizing = "border-box";
+area.style.display = "grid";
+area.style.gridTemplateColumns = "repeat(5, 70px)";
+area.style.gap = "5px";
+area.style.height = "300px";
+area.style.maxHeight = "300px";
+area.style.overflowY = "auto";
+area.style.overflowX = "hidden";
+area.style.boxSizing = "border-box";
 
 
 
