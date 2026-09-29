@@ -1333,9 +1333,7 @@ z-index:999;
                   height:120px;
                   resize:none;
                   "></textarea>
-
                     <br>
-
                     <button onclick="sendDeveloperDM()">
                         送信
                     </button>
@@ -1345,7 +1343,6 @@ z-index:999;
                     </button>
 
                 </div>
-
             </div>
             <br>
             <span id="profile"></span>
@@ -1883,342 +1880,578 @@ gap:5px;
             document.getElementById("chat");
 
 
+        
+async function getFixedUserId(userId) {
 
-        async function getFixedUserId() {
+    if (!userId) {
+
+        console.error(
+            "getFixedUserId: userId がありません"
+        );
+
+        return null;
+    }
 
 
-            let deviceKey =
-                localStorage.getItem("deviceKey");
+    // ==========================================
+    // ユーザー情報取得
+    // ==========================================
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("users")
+        .select(`
+            id,
+            ban_until,
+            icon_url,
+            profile,
+            username,
+            points,
+            stamp_list
+        `)
+        .eq("id", userId)
+        .single();
 
 
-            if (!deviceKey) {
+    if (error || !data) {
 
-                deviceKey =
-                    crypto.randomUUID();
+        console.error(
+            "ユーザー情報取得エラー:",
+            error
+        );
 
-                localStorage.setItem(
-                    "deviceKey",
-                    deviceKey
+        showLoginMessage(
+            "ユーザー情報を取得できませんでした",
+            "#cc2222"
+        );
+
+        return null;
+    }
+
+
+    // ==========================================
+    // BAN確認
+    // ==========================================
+
+    if (data.ban_until) {
+
+        const banTime =
+            new Date(
+                data.ban_until
+            ).getTime();
+
+        const now =
+            Date.now();
+
+
+        if (banTime > now) {
+
+            const remain =
+                Math.ceil(
+                    (banTime - now) /
+                    60000
                 );
 
-            }
 
-
-
-            // 既存ユーザー検索
-
-            let { data, error } = await supabaseClient
-                .from("users")
-                .select("id")
-                .eq(
-                    "device_key",
-                    deviceKey
-                )
-                .single();
-
-
-
-            // BAN確認
-            if (data.ban_until) {
-
-                const banTime =
-                    new Date(data.ban_until).getTime();
-
-
-                const now =
-                    Date.now();
-                console.log(
-                    "現在時刻:",
-                    new Date().toString()
-                );
-
-                console.log(
-                    "BAN期限:",
-                    new Date(data.ban_until).toString()
-                );
-
-                console.log(
-                    "BAN比較:",
-                    banTime,
-                    now
-                );
-
-
-                if (
-                    banTime > now
-                ) {
-
-                    const remain =
-                        Math.ceil(
-                            (banTime - now)
-                            /
-                            60000
-                        );
-
-
-                    console.log(
-                        "BAN中",
-                        remain,
-                        "分"
-                    );
-
-
-                    isBanned = true;
-
-
-                    showChatNotify(
-                        `BAN中です。残り${remain}分`, null
-                    );
-
-
-                    return;
-
-                }
-
-            }
-            myProfile = {
-                icon_url: data.icon_url || "",
-                profile: data.profile || ""
-            };
-            const streak = await updateLoginStreak(data.id);
-            showLoginMessage(
-                "ログイン成功",
-                "#22aa22"
+            console.log(
+                "BAN中",
+                remain,
+                "分"
             );
-            myProfile.icon_url = data.icon_url || "";
-            myProfile.profile = data.profile || "";
 
 
-            return data.id;
+            isBanned = true;
+
+
+            showChatNotify(
+                `BAN中です。残り${remain}分`,
+                null
+            );
+
+
+            return null;
         }
+    }
+
+
+    // ==========================================
+    // IPアドレス取得
+    // ==========================================
+
+    let loginIP = "";
+
+    try {
+
+        const ipResponse =
+            await fetch(
+                "https://api.ipinfo.io/lite/me?token=5112a9b935a52d"
+            );
+
+
+        if (ipResponse.ok) {
+
+            const ipData =
+                await ipResponse.json();
+
+            loginIP =
+                ipData.ip || "";
+
+
+            console.log(
+                "ログインIP:",
+                loginIP
+            );
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "IPアドレス取得失敗:",
+            error
+        );
+    }
+
+
+    // ==========================================
+    // IP保存
+    // ==========================================
+
+    if (loginIP) {
+
+        const {
+            error: ipError
+        } = await supabaseClient
+            .from("users")
+            .update({
+                last_login_ip: loginIP
+            })
+            .eq(
+                "id",
+                data.id
+            );
+
+
+        if (ipError) {
+
+            console.error(
+                "last_login_ip 保存エラー:",
+                ipError
+            );
+
+        } else {
+
+            console.log(
+                "last_login_ip 保存完了:",
+                loginIP
+            );
+        }
+    }
+
+
+    // ==========================================
+    // プロフィール
+    // ==========================================
+
+    myProfile = {
+
+        icon_url:
+            data.icon_url || "",
+
+        profile:
+            data.profile || "",
+
+        points:
+            data.points || 0,
+
+        stamp_list:
+            data.stamp_list || []
+    };
+
+
+    // ==========================================
+    // ログインストリーク
+    // ==========================================
+
+    await updateLoginStreak(
+        data.id
+    );
+
+
+    showLoginMessage(
+        "ログイン成功",
+        "#22aa22"
+    );
+
+
+    // 必ず data.id を返す
+    return data.id;
+}
         // 開始
 
-        async function startChat() {
-            const userId = await loginUser();
+async function startChat() {
 
-            if (!userId) {
-                return;
-            }
+    // ==========================================
+    // ログイン
+    // ==========================================
 
-            userName =
-                document.getElementById("setName")
-                    .value.trim();
+    const loginUserId =
+        await loginUser();
 
 
-            userRoom =
-                document.getElementById("setRoom")
-                    .value.trim();
-            document.getElementById("top").style.display = "flex";
-
-            if (!userName || !userRoom) {
-
-                showChatNotify("入力してください", null);
-                return;
-
-            }
+    if (!loginUserId) {
+        return;
+    }
 
 
+    // ==========================================
+    // ユーザー確認・BAN・IP保存
+    // ==========================================
 
-            clientId =
-                "id-" + userId;
-            const { data: userData, error } = await supabaseClient
-                .from("users")
-                .select("icon_url,profile,username,points,stamp_list")
-                .eq("id", userId)
-                .single();
-
-            if (userData) {
-                myProfile = {
-                    icon_url: userData.icon_url || "",
-                    profile: userData.profile || "",
-                    points: userData.points || 0,
-                    stamp_list: userData.stamp_list || []
-                };
-
-                userName = userData.username || userName;
-            }
+    const userId =
+        await getFixedUserId(
+            loginUserId
+        );
 
 
-            document.getElementById("users")
-                .innerText =
-                "接続中…";
+    if (!userId) {
+        return;
+    }
 
 
+    // ==========================================
+    // 名前・ルーム
+    // ==========================================
 
-            started = true;
-
-
-
-            document.getElementById("setup")
-                .style.display = "none";
-
-
-            document.getElementById("top")
-                .style.display = "block";
+    userName =
+        document.getElementById("setName")
+            .value.trim();
 
 
-            document.getElementById("profile")
-                .innerText =
-                `${userName} / ${userRoom}`;
+    userRoom =
+        document.getElementById("setRoom")
+            .value.trim();
 
 
+    if (!userName || !userRoom) {
+
+        showChatNotify(
+            "入力してください",
+            null
+        );
+
+        return;
+    }
 
 
-            client = mqtt.connect(
+    // ==========================================
+    // ★ userIdから確実にclientIdを作る
+    // ==========================================
 
-                "wss://broker.hivemq.com:8884/mqtt",
-
-                {
-
-                    clientId: clientId,
-
-                    clean: true,
+    clientId =
+        "id-" + String(userId);
 
 
-                    // 接続維持（秒）
-                    keepalive: 30,
+    console.log(
+        "userId:",
+        userId
+    );
+
+    console.log(
+        "clientId:",
+        clientId
+    );
 
 
-                    // 接続タイムアウト
-                    connectTimeout: 10000,
+    // ==========================================
+    // ユーザー情報
+    // ==========================================
+
+    const {
+        data: userData,
+        error
+    } = await supabaseClient
+        .from("users")
+        .select(
+            "icon_url,profile,username,points,stamp_list"
+        )
+        .eq(
+            "id",
+            userId
+        )
+        .single();
 
 
-                    // 自動再接続
-                    reconnectPeriod: 3000,
+    if (error) {
+
+        console.error(
+            "ユーザー情報取得エラー:",
+            error
+        );
+    }
 
 
-                    will: {
+    if (userData) {
 
-                        topic:
-                            `chanpro-chat/${userRoom}/offline`,
+        myProfile = {
+
+            icon_url:
+                userData.icon_url || "",
+
+            profile:
+                userData.profile || "",
+
+            points:
+                userData.points || 0,
+
+            stamp_list:
+                userData.stamp_list || []
+
+        };
 
 
-                        payload:
-                            JSON.stringify({
-
-                                id: clientId,
-
-                                name: userName,
-
-                                type: "offline"
-
-                            }),
+        userName =
+            userData.username ||
+            userName;
+    }
 
 
-                        qos: 1,
+    // ==========================================
+    // 画面
+    // ==========================================
 
-                        retain: false
+    document.getElementById("users")
+        .innerText =
+        "接続中…";
 
-                    }
 
+    started = true;
+
+
+    document.getElementById("setup")
+        .style.display = "none";
+
+
+    document.getElementById("top")
+        .style.display = "block";
+
+
+    document.getElementById("profile")
+        .innerText =
+        `${userName} / ${userRoom}`;
+
+
+    // ==========================================
+    // MQTT
+    // ==========================================
+
+    client =
+        mqtt.connect(
+
+            "wss://broker.hivemq.com:8884/mqtt",
+
+            {
+
+                clientId:
+                    clientId,
+
+                clean:
+                    true,
+
+                keepalive:
+                    30,
+
+                connectTimeout:
+                    10000,
+
+                reconnectPeriod:
+                    3000,
+
+                will: {
+
+                    topic:
+                        `chanpro-chat/${userRoom}/offline`,
+
+                    payload:
+                        JSON.stringify({
+
+                            id:
+                                clientId,
+
+                            name:
+                                userName,
+
+                            type:
+                                "offline"
+
+                        }),
+
+                    qos:
+                        1,
+
+                    retain:
+                        false
                 }
+            }
+        );
 
+
+    // ==========================================
+    // MQTT接続
+    // ==========================================
+
+    client.on(
+        "connect",
+        async () => {
+
+            console.log(
+                "MQTT connected"
             );
 
 
+            client.subscribe(
+                `chanpro-chat/${userRoom}/#`,
+                {
+                    qos: 1
+                }
+            );
 
 
+            // ==================================
+            // 開発者履歴
+            // ==================================
 
-            client.on("connect", async () => {
-
-                console.log("MQTT connected");
-
-                client.subscribe(`chanpro-chat/${userRoom}/#`, { qos: 1 });
-
-                const devUid = clientId.replace("id-", "");
-
-                developerHistoryTopic =
-                    `chanpro-dev/user/${devUid}/history`;
-
-                client.subscribe(
-                    developerHistoryTopic,
-                    { qos: 1 }
-                );
-
-                client.subscribe(
-                    `chanpro-dev/user/${devUid}`,
-                    { qos: 1 }
-                );
-                const settingTopic =
-                    `chanpro-settings/user/${encodeURIComponent(userName)}`;
-
-                client.subscribe(
-                    settingTopic,
-                    { qos: 1 }
-                );
-                console.log(
-                    "通知履歴購読:",
-                    developerHistoryTopic
-                );
+            const devUid =
+                String(userId);
 
 
-
-                nameConflict = false;
-
-                nameCheckFinished = false;
+            developerHistoryTopic =
+                `chanpro-dev/user/${devUid}/history`;
 
 
-
-                // 名前確認
-
-                client.publish(
-
-                    `chanpro-chat/${userRoom}/namecheck`,
-
-                    JSON.stringify({
-
-                        type: "check",
-
-                        id: clientId,
-
-                        name: userName
-
-                    }),
-
-                    {
-
-                        qos: 1
-
-                    }
-
-                );
+            client.subscribe(
+                developerHistoryTopic,
+                {
+                    qos: 1
+                }
+            );
 
 
+            client.subscribe(
+                `chanpro-dev/user/${devUid}`,
+                {
+                    qos: 1
+                }
+            );
 
-                /*
-                    名前確認待ち
-                    2秒固定
-                */
 
-                setTimeout(async () => {
+            // ==================================
+            // 設定
+            // ==================================
 
-                    nameCheckFinished = true;
+            const settingTopic =
+                `chanpro-settings/user/${encodeURIComponent(userName)}`;
+
+
+            client.subscribe(
+                settingTopic,
+                {
+                    qos: 1
+                }
+            );
+
+
+            console.log(
+                "通知履歴購読:",
+                developerHistoryTopic
+            );
+
+
+            // ==================================
+            // 名前チェック
+            // ==================================
+
+            nameConflict = false;
+
+            nameCheckFinished = false;
+
+
+            client.publish(
+
+                `chanpro-chat/${userRoom}/namecheck`,
+
+                JSON.stringify({
+
+                    type:
+                        "check",
+
+                    id:
+                        clientId,
+
+                    name:
+                        userName
+
+                }),
+
+                {
+                    qos: 1
+                }
+            );
+
+
+            // ==================================
+            // 名前確認待ち
+            // ==================================
+
+            setTimeout(
+                async () => {
+
+                    nameCheckFinished =
+                        true;
 
 
                     if (nameConflict) {
 
-                        showChatNotify("同じユーザー名がすでに使用されています", null);
+                        showChatNotify(
+                            "同じユーザー名がすでに使用されています",
+                            null
+                        );
+
 
                         client.end(true);
 
                         location.reload();
 
                         return;
-
                     }
 
 
-                    // 履歴取得
+                    // 履歴
                     await loadOrSyncHistory();
+
                     await loadDeveloperMessages();
-                    await new Promise(resolve => setTimeout(resolve, 500));
+
+
+                    await new Promise(
+                        resolve =>
+                            setTimeout(
+                                resolve,
+                                500
+                            )
+                    );
+
+
                     pendingJoinMessages = [];
 
 
-                    knownMembers[clientId] = true;
+                    // 自分をメンバー登録
+                    knownMembers[
+                        clientId
+                    ] = true;
 
 
-                    // 自分の参加通知
+                    // 参加通知
                     addMsg(
                         "システム",
                         `${userName}さんが参加しました`,
@@ -2230,65 +2463,100 @@ gap:5px;
                     announce();
 
 
-                    const sendButton = document.getElementById("sendButton");
+                    // 送信ボタン
+                    const sendButton =
+                        document.getElementById(
+                            "sendButton"
+                        );
+
 
                     if (sendButton) {
 
-                        sendButton.disabled = false;
-
+                        sendButton.disabled =
+                            false;
                     }
 
 
                     startBanWatcher();
 
 
-                    membersLoading = false;
+                    membersLoading =
+                        false;
+
+
                     showMembers();
 
-
-                }, 1000);
-
-
-            });
-
-
-
-
-
-
-            client.on(
-
-                "message",
-
-                receiveMQTT
-
+                },
+                1000
             );
 
-            client.on("reconnect", () => {
-
-                document.getElementById("users")
-                    .innerText = "再接続中…";
-
-            });
+        }
+    );
 
 
-            client.on("offline", () => {
+    // ==========================================
+    // MQTTメッセージ
+    // ==========================================
 
-                document.getElementById("users")
-                    .innerText = "通信待機中…";
+    client.on(
+        "message",
+        receiveMQTT
+    );
 
-            });
 
+    // ==========================================
+    // 再接続
+    // ==========================================
 
-            client.on("error", (err) => {
-                document.getElementById("users")
-                    .innerText = "接続が拒否されています。更新をしてください。";
-                console.log("MQTT error", err);
+    client.on(
+        "reconnect",
+        () => {
 
-            });
-
+            document.getElementById("users")
+                .innerText =
+                "再接続中…";
 
         }
+    );
+
+
+    // ==========================================
+    // オフライン
+    // ==========================================
+
+    client.on(
+        "offline",
+        () => {
+
+            document.getElementById("users")
+                .innerText =
+                "通信待機中…";
+
+        }
+    );
+
+
+    // ==========================================
+    // エラー
+    // ==========================================
+
+    client.on(
+        "error",
+        (err) => {
+
+            document.getElementById("users")
+                .innerText =
+                "接続が拒否されています。更新をしてください。";
+
+
+            console.log(
+                "MQTT error",
+                err
+            );
+
+        }
+    );
+}
 
 
 
